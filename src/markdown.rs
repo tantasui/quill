@@ -92,7 +92,9 @@ pub fn plain_text(markdown: &str, max_chars: usize) -> String {
                 in_skipped = in_skipped.saturating_sub(1)
             }
             Event::Text(t) | Event::Code(t) if in_skipped == 0 => out.push_str(&t),
-            Event::SoftBreak | Event::HardBreak | Event::End(TagEnd::Paragraph) => out.push(' '),
+            Event::SoftBreak | Event::HardBreak | Event::End(TagEnd::Paragraph | TagEnd::Item) => {
+                out.push(' ')
+            }
             _ => {}
         }
         if out.chars().count() > max_chars + 1 {
@@ -176,5 +178,9 @@ mod tests {
         );
         assert_eq!(text, "Some emphasised text with code. More.");
         assert_eq!(truncate_words("one two three four", 9), "one two…");
+        assert_eq!(
+            plain_text("Intro\n\n- first\n- second", 200),
+            "Intro first second"
+        );
     }
 }

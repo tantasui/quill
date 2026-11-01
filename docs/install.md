@@ -9,7 +9,7 @@ Quill runs as a small web server on your machine. Your existing web server (ngin
 ### With Docker
 
 ```sh
-git clone <this repository> quill && cd quill
+git clone https://github.com/tantasui/quill.git && cd quill
 docker compose up -d
 docker compose logs quill
 ```

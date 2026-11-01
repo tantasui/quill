@@ -4,14 +4,33 @@
 
 Add a blog to the website you already have. Quill is a small, self-hosted blogging engine: one binary, one SQLite file, three built-in themes and a browser dashboard for writing and publishing. Nothing to build and no separate frontend to maintain.
 
-> "Quill" is a working title.
-
 - **Lives on your domain.** Serve it at `example.com/blog` or `blog.example.com`. Every link, asset, feed and canonical URL follows the public address you set.
 - **Publish from the browser.** A Markdown editor with a formatting toolbar, live preview, drag-and-drop images, drafts, scheduling, tags, cover images and SEO fields. You never need a terminal or a database client.
 - **Looks good out of the box.** Three responsive themes (*Editorial*, *Devlog* and *Gazette*) with dark mode. Preview any of them on your own content and switch at any time without touching your articles.
 - **Secure defaults.** Argon2 password hashing, HttpOnly session cookies, CSRF tokens and origin checks, login throttling, sanitized Markdown, content-sniffed image uploads (no SVG) and a strict Content-Security-Policy. A one-time setup code stops anyone else from claiming a fresh install.
 - **Yours to keep.** Built-in backup and restore, automatic snapshots before upgrades, and a Markdown export that works with other tools.
 - **Search-friendly.** Server-rendered HTML, canonical URLs, Open Graph tags, an Atom feed, a sitemap, `robots.txt`, and automatic redirects when you rename an article.
+
+## Screenshots
+
+<!-- TODO: add dashboard and theme screenshots, plus a demo GIF. -->
+*Screenshots and a demo GIF are coming.*
+
+## Why Quill?
+
+Quill is for people who already have a website and want a blog on it, written from a browser, with one small program to look after. It is young and deliberately narrow, and the projects below are more mature. Pick whichever fits.
+
+| | Quill | [Ghost](https://ghost.org) | [WriteFreely](https://writefreely.org) | [Zola](https://www.getzola.org) |
+|---|---|---|---|---|
+| **What it is** | Self-hosted blog with a dashboard | Full publishing platform | Minimalist, federated blogging | Static site generator |
+| **What you run** | One binary | Node.js and MySQL | One binary | Nothing at runtime; any static host works |
+| **Storage** | SQLite | MySQL in production | SQLite or MySQL | Files in your repository |
+| **Where you write** | Browser (Markdown) | Browser (rich editor) | Browser (Markdown) | Your text editor, then build and deploy |
+
+- **Choose Ghost** if you want memberships, paid subscriptions, newsletters and a large theme ecosystem. Quill has none of these. Ghost also asks more of your server, and has a hosted option if you'd rather not run one at all.
+- **Choose WriteFreely** if you want a focused writing space with ActivityPub federation or several blogs and authors on one instance. Quill doesn't federate and has a single administrator.
+- **Choose Zola** if you're happy writing in files and deploying from a terminal. With no server process or database, a static site is cheaper to host and has less to secure than Quill will ever have.
+- **Choose Quill** if you want a dashboard and your blog at `example.com/blog` on the site you already run, without operating a database server or a build pipeline.
 
 ## Quick start
 
@@ -66,20 +85,30 @@ Backups, upgrades and recovery: [docs/operations.md](docs/operations.md). Themes
 ## Development
 
 ```sh
-cargo test        # unit + end-to-end tests (in-memory database)
-cargo run         # debug builds read templates and CSS from disk, so edits show on reload
+cargo fmt --all --check                                      # formatting
+cargo clippy --workspace --all-targets -- -D warnings        # lints
+cargo test --workspace                                       # unit + end-to-end tests (in-memory database)
+cargo run                                                    # debug builds read templates and CSS from disk, so edits show on reload
 ```
 
-Layout: `src/routes/public.rs` (blog pages, feeds), `src/routes/admin.rs` (dashboard), `src/models.rs` (queries), `src/auth.rs` (sessions, CSRF), `src/markdown.rs` (rendering and sanitizing), `templates/` and `static/` (embedded into the binary at build time), `migrations/` (applied on startup).
+Layout: `src/routes/public.rs` (blog pages, feeds), `src/routes/admin/` (dashboard, one module per area), `src/models.rs` (queries), `src/auth.rs` (sessions, CSRF), `src/markdown.rs` (rendering and sanitizing), `templates/` and `static/` (embedded into the binary at build time), `migrations/` (applied on startup).
 
-## Decisions for the open questions in the PRD
+CI runs the first three on every push and pull request.
 
-| PRD question | Choice in this release | Why |
+## Design decisions
+
+The longer reasoning behind individual choices is in [docs/decisions/](docs/decisions/).
+
+| Question | Choice | Why |
 |---|---|---|
 | Hosting target | Native binary on a VPS, plus a Docker image | One codebase covers both; shared PHP hosting can't run a server process. |
 | `/blog` or subdomain | Both | One public-address setting decides the base path. Proxies may keep or strip the prefix. |
 | Editor | Markdown with toolbar, live preview, side-by-side mode and in-theme preview | Portable content and no heavy client bundle; the toolbar covers authors who don't know Markdown. |
 | Database | SQLite (WAL mode) | Zero setup, single-file backups, plenty for one author's blog. |
-| `design.md` importer | Not yet (Milestone 5) | Themes already use CSS design tokens, which the importer can target later. |
-| Users | Single administrator | Per the PRD's MVP assumption; the schema keeps a `role` column for later. |
+| `design.md` importer | Not yet | Themes already use CSS design tokens, which the importer can target later. |
+| Users | Single administrator | Keeps the first releases simple; the schema keeps a `role` column for later. |
 | Content export | Markdown + YAML front matter, plus media | Readable by most static-site generators and blogging tools. |
+
+## License
+
+[MIT](LICENSE)

@@ -47,11 +47,11 @@ pub fn app(state: AppState) -> Router {
         .route("/admin/account", get(admin::account_form).post(admin::account_submit))
         .route(
             "/admin/media",
-            get(admin::media)
-                .post(admin::upload_media)
+            get(admin::media::media)
+                .post(admin::media::upload_media)
                 .layer(DefaultBodyLimit::max(MAX_UPLOAD_BYTES + 64 * 1024)),
         )
-        .route("/admin/media/{id}/delete", post(admin::delete_media))
+        .route("/admin/media/{id}/delete", post(admin::media::delete_media))
         .layer(SetResponseHeaderLayer::overriding(header::CACHE_CONTROL, HeaderValue::from_static("no-store")))
         .layer(SetResponseHeaderLayer::overriding(
             header::HeaderName::from_static("x-robots-tag"),

@@ -42,7 +42,7 @@ pub fn app(state: AppState) -> Router {
         .route("/admin/preview", post(admin::preview_markdown))
         .route("/admin/themes", get(admin::themes).post(admin::activate_theme))
         .route("/admin/themes/{id}/preview", get(admin::preview_theme))
-        .route("/admin/settings", get(admin::settings_form).post(admin::settings_submit))
+        .route("/admin/settings", get(admin::settings::settings_form).post(admin::settings::settings_submit))
         .route("/admin/integration", get(admin::integration::integration))
         .route("/admin/account", get(admin::account::account_form).post(admin::account::account_submit))
         .route(

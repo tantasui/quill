@@ -7,7 +7,7 @@ use serde_json::json;
 
 use crate::auth::AdminUser;
 use crate::error::AppResult;
-use crate::models::{self};
+use crate::models;
 use crate::state::AppState;
 use crate::themes;
 

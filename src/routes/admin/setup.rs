@@ -8,7 +8,7 @@ use chrono::Utc;
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::auth::{self};
+use crate::auth;
 use crate::error::AppResult;
 use crate::routes::{request_origin, OriginalPath};
 use crate::settings::{normalize_base_url, Settings};

@@ -10,7 +10,7 @@ use serde_json::json;
 use crate::auth::{self, AdminUser};
 use crate::error::AppResult;
 use crate::markdown;
-use crate::models::{self};
+use crate::models;
 use crate::routes::public::{self, valid_media_name};
 use crate::routes::MAX_UPLOAD_BYTES;
 use crate::state::AppState;

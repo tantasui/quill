@@ -1,5 +1,7 @@
 # Quill
 
+[![CI](https://github.com/tantasui/quill/actions/workflows/ci.yml/badge.svg)](https://github.com/tantasui/quill/actions/workflows/ci.yml)
+
 Add a blog to the website you already have. Quill is a small, self-hosted blogging engine: one binary, one SQLite file, three built-in themes and a browser dashboard for writing and publishing. Nothing to build and no separate frontend to maintain.
 
 > "Quill" is a working title.

@@ -6,6 +6,7 @@
 mod color;
 mod error;
 mod font;
+mod layout;
 mod length;
 mod shadow;
 mod tokens;
@@ -13,6 +14,10 @@ mod tokens;
 pub use color::Color;
 pub use error::TokenError;
 pub use font::{FontStack, FontWeight};
+pub use layout::{
+    ArticleLayout, ArticleMeasure, CoverStyle, FeedVariant, Footer, FooterVariant, Header,
+    HeaderVariant, HomeSection, Labels, Layout, LayoutDraft, LayoutError, PageWidth, TagRail,
+};
 pub use length::{Length, Offset};
 pub use shadow::Shadow;
 pub use tokens::{DesignTokens, Palette};

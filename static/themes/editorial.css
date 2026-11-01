@@ -4,7 +4,9 @@
   --surface: #f3f1ea;
   --text: #22201c;
   --muted: #6b665d;
-  --accent: #9c3a1f;
+  --accent-fill: #9c3a1f;
+  --on-accent: #fff;
+  --accent-text: #9c3a1f;
   --border: #e4e0d6;
   --code-bg: #f0ede4;
   --font-body: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Charter, "Bitstream Charter", Georgia, serif;
@@ -18,7 +20,9 @@
     --surface: #24221f;
     --text: #e9e5dc;
     --muted: #a39d91;
-    --accent: #e89a7c;
+    --accent-fill: #e89a7c;
+    --on-accent: #1b1a18;
+    --accent-text: #e89a7c;
     --border: #36332e;
     --code-bg: #2a2825;
   }
@@ -39,7 +43,7 @@ body { font-size: 1.0625rem; }
 .site-tagline { margin: 0.6rem auto 0; color: var(--muted); font-style: italic; max-width: 28rem; }
 .site-nav { margin-top: 1.25rem; display: flex; justify-content: center; gap: 1.5rem; font-size: 0.95rem; }
 .site-nav a { color: var(--muted); text-decoration: none; }
-.site-nav a:hover { color: var(--accent); }
+.site-nav a:hover { color: var(--accent-text); }
 
 .site-main { min-height: 50vh; }
 
@@ -51,7 +55,7 @@ body { font-size: 1.0625rem; }
 .post-cover img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 3px; }
 .post-title { font-size: 1.65rem; line-height: 1.2; margin: 0; font-weight: 600; text-wrap: balance; }
 .post-title a { color: var(--text); text-decoration: none; }
-.post-title a:hover { color: var(--accent); }
+.post-title a:hover { color: var(--accent-text); }
 .post-meta { margin: 0.5rem 0 0; color: var(--muted); font-size: 0.9rem; font-style: italic; }
 .post-meta .sep { margin: 0 0.35em; }
 .post-excerpt { margin: 0.75rem 0 0; }
@@ -59,7 +63,7 @@ body { font-size: 1.0625rem; }
 /* Article */
 .article-header { text-align: center; margin-bottom: 2.5rem; }
 .article-kicker { margin: 0 0 1rem; font-size: 0.8rem; letter-spacing: 0.14em; text-transform: uppercase; }
-.article-kicker a { color: var(--accent); text-decoration: none; }
+.article-kicker a { color: var(--accent-text); text-decoration: none; }
 .article-title { font-size: clamp(2rem, 6vw, 2.9rem); line-height: 1.12; margin: 0; font-weight: 600; text-wrap: balance; }
 .article-dek { font-size: 1.25rem; color: var(--muted); margin: 1rem auto 0; max-width: 32rem; font-style: italic; }
 .article-header .post-meta { margin-top: 1.25rem; }
@@ -72,15 +76,15 @@ body { font-size: 1.0625rem; }
   display: inline-block; padding: 0.2rem 0.7rem; border: 1px solid var(--border); border-radius: 999px;
   font-size: 0.85rem; color: var(--muted); text-decoration: none;
 }
-.tag:hover { border-color: var(--accent); color: var(--accent); }
+.tag:hover { border-color: var(--accent-text); color: var(--accent-text); }
 
 .page-header { text-align: center; margin-bottom: 3rem; }
-.page-kicker { margin: 0; font-size: 0.8rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+.page-kicker { margin: 0; font-size: 0.8rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-text); }
 .page-title { font-size: 2.3rem; margin: 0.3rem 0 0; line-height: 1.15; }
 .page-subtitle { color: var(--muted); margin: 0.5rem 0 0; font-style: italic; }
 .archive-year h2 { font-size: 1.2rem; color: var(--muted); font-weight: 600; margin: 0 0 0.5rem; }
 .archive-list a { color: var(--text); text-decoration: none; }
-.archive-list a:hover { color: var(--accent); }
+.archive-list a:hover { color: var(--accent-text); }
 
 .site-footer {
   margin-top: 5rem; padding: 2rem 0 3rem; border-top: 1px solid var(--border);

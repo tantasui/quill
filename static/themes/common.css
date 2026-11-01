@@ -1,7 +1,8 @@
 /*
  * Shared foundation for every public theme.
  * Themes set these design tokens and add their own layout:
- *   --bg --surface --text --muted --accent --accent-contrast --border --code-bg
+ *   --bg --surface --text --muted --border --code-bg
+ *   --accent-fill --on-accent --accent-text
  *   --font-body --font-heading --font-mono --measure --radius
  */
 :root {
@@ -9,8 +10,9 @@
   --surface: #f6f6f4;
   --text: #1d1d1b;
   --muted: #5f5e5a;
-  --accent: #1f5fbf;
-  --accent-contrast: #fff;
+  --accent-fill: #1f5fbf;
+  --on-accent: #fff;
+  --accent-text: #1f5fbf;
   --border: #e3e2de;
   --code-bg: #f3f2ef;
   --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -37,10 +39,10 @@ body {
 
 img, video { max-width: 100%; height: auto; }
 
-a { color: var(--accent); text-underline-offset: 0.18em; text-decoration-thickness: 1px; }
+a { color: var(--accent-text); text-underline-offset: 0.18em; text-decoration-thickness: 1px; }
 a:hover { text-decoration-thickness: 2px; }
 
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; border-radius: 2px; }
 
 .skip-link {
   position: absolute; left: 1rem; top: -4rem; z-index: 100;
@@ -79,7 +81,7 @@ a:hover { text-decoration-thickness: 2px; }
 .prose li > ul, .prose li > ol { margin-top: 0.35em; }
 .prose blockquote {
   margin-left: 0; margin-right: 0; padding: 0.1em 0 0.1em 1.1em;
-  border-left: 3px solid var(--accent); color: var(--muted); font-style: italic;
+  border-left: 3px solid var(--accent-text); color: var(--muted); font-style: italic;
 }
 .prose code {
   font-family: var(--font-mono); font-size: 0.86em;
@@ -121,7 +123,7 @@ a:hover { text-decoration-thickness: 2px; }
 .article-nav-older { text-align: right; grid-column: 2; }
 .article-nav-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
 .article-nav-title { font-weight: 600; color: var(--text); }
-.article-nav a:hover .article-nav-title { color: var(--accent); }
+.article-nav a:hover .article-nav-title { color: var(--accent-text); }
 
 .archive-year + .archive-year { margin-top: 2rem; }
 .archive-list { list-style: none; padding: 0; margin: 0; }

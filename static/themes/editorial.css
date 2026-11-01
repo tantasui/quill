@@ -1,33 +1,4 @@
 /* Editorial — a quiet reading column with classic serif typography. */
-:root {
-  --bg: #fbfaf7;
-  --surface: #f3f1ea;
-  --text: #22201c;
-  --muted: #6b665d;
-  --accent-fill: #9c3a1f;
-  --on-accent: #fff;
-  --accent-text: #9c3a1f;
-  --border: #e4e0d6;
-  --code-bg: #f0ede4;
-  --font-body: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Charter, "Bitstream Charter", Georgia, serif;
-  --font-heading: var(--font-body);
-  --measure: 38rem;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1b1a18;
-    --surface: #24221f;
-    --text: #e9e5dc;
-    --muted: #a39d91;
-    --accent-fill: #e89a7c;
-    --on-accent: #1b1a18;
-    --accent-text: #e89a7c;
-    --border: #36332e;
-    --code-bg: #2a2825;
-  }
-}
-
 body { font-size: 1.0625rem; }
 
 .page { max-width: var(--measure); margin: 0 auto; padding: 0 1.25rem; }

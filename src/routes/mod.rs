@@ -15,6 +15,7 @@ use tower_http::trace::TraceLayer;
 
 use crate::render::StaticFiles;
 use crate::state::AppState;
+use crate::themes;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const MAX_UPLOAD_BYTES: usize = 10 * 1024 * 1024;
@@ -104,6 +105,7 @@ pub fn app(state: AppState) -> Router {
         .route("/sitemap.xml", get(public::sitemap))
         .route("/robots.txt", get(public::robots))
         .route("/media/{name}", get(public::media))
+        .route("/static/tokens/{file}", get(token_stylesheet))
         .route("/static/{*path}", get(static_file))
         .route("/healthz", get(|| async { "ok" }))
         .merge(admin)
@@ -205,6 +207,22 @@ pub fn request_origin(headers: &HeaderMap) -> Option<String> {
         "http"
     };
     request_host(headers).map(|h| format!("{scheme}://{}", h.to_ascii_lowercase()))
+}
+
+/// A preset's design tokens as CSS, generated from their typed values.
+async fn token_stylesheet(Path(file): Path<String>) -> Response {
+    let preset = file.strip_suffix(".css").and_then(themes::find);
+    match preset {
+        Some(preset) => (
+            [
+                (header::CONTENT_TYPE, "text/css; charset=utf-8"),
+                (header::CACHE_CONTROL, "public, max-age=86400"),
+            ],
+            preset.tokens().to_css(),
+        )
+            .into_response(),
+        None => (StatusCode::NOT_FOUND, "Not found").into_response(),
+    }
 }
 
 async fn static_file(Path(path): Path<String>) -> Response {

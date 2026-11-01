@@ -1,42 +1,10 @@
 /* Gazette — a traditional publication with a masthead, lead story and story grid. */
-:root {
-  --bg: #fdfcf9;
-  --surface: #f4f1ea;
-  --text: #121212;
-  --muted: #5a5750;
-  --accent-fill: #b3261e;
-  --on-accent: #fff;
-  --accent-text: #b3261e;
-  --border: #d9d4c7;
-  --rule: #121212;
-  --code-bg: #f1eee6;
-  --font-body: Georgia, "Times New Roman", Times, serif;
-  --font-heading: "Playfair Display", "Didot", "Bodoni MT", "Times New Roman", Georgia, serif;
-  --font-ui: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
-  --measure: 40rem;
-  --radius: 0;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #161514;
-    --surface: #1f1e1c;
-    --text: #ecebe6;
-    --muted: #a8a49a;
-    --accent-fill: #f08a7e;
-    --on-accent: #161514;
-    --accent-text: #f08a7e;
-    --border: #3a3834;
-    --rule: #ecebe6;
-    --code-bg: #24231f;
-  }
-}
-
+:root { --font-ui: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif; }
 /* Masthead */
 .masthead { max-width: 75rem; margin: 0 auto; padding: 0 1.25rem; }
 .masthead-inner {
   text-align: center; padding: 2.5rem 0 1.25rem;
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 1px solid var(--text);
 }
 .masthead-title {
   font-family: var(--font-heading); font-weight: 900; font-size: clamp(2.4rem, 8vw, 4.6rem);
@@ -48,7 +16,7 @@
 }
 .sections {
   display: flex; justify-content: center; flex-wrap: wrap; gap: 0.25rem 1.75rem;
-  padding: 0.7rem 0; border-bottom: 3px double var(--rule);
+  padding: 0.7rem 0; border-bottom: 3px double var(--text);
   font-family: var(--font-ui); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
 }
 .sections a { color: var(--text); text-decoration: none; }
@@ -113,10 +81,10 @@
   float: left; font-family: var(--font-heading); font-size: 4.1em; line-height: 0.82;
   font-weight: 800; margin: 0.06em 0.1em 0 0; color: var(--accent-text);
 }
-.prose blockquote { border-left-color: var(--rule); font-size: 1.2em; color: var(--text); }
-.article-footer { margin-top: 2.5rem; padding-top: 1.25rem; border-top: 3px double var(--rule); }
+.prose blockquote { border-left-color: var(--text); font-size: 1.2em; color: var(--text); }
+.article-footer { margin-top: 2.5rem; padding-top: 1.25rem; border-top: 3px double var(--text); }
 .tag {
-  display: inline-block; padding: 0.25rem 0.6rem; border: 1px solid var(--rule);
+  display: inline-block; padding: 0.25rem 0.6rem; border: 1px solid var(--text);
   font-family: var(--font-ui); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
   color: var(--text); text-decoration: none;
 }
@@ -129,7 +97,7 @@
 .page-title { font-family: var(--font-heading); font-size: clamp(2rem, 5vw, 3rem); margin: 0.3rem 0 0; line-height: 1.1; }
 .page-subtitle { margin: 0.5rem 0 0; color: var(--muted); font-style: italic; }
 .archive-year, .archive-tags, .recent { max-width: 48rem; margin-left: auto; margin-right: auto; }
-.archive-year h2 { font-family: var(--font-heading); font-size: 1.6rem; margin: 0 0 0.5rem; padding-bottom: 0.3rem; border-bottom: 1px solid var(--rule); }
+.archive-year h2 { font-family: var(--font-heading); font-size: 1.6rem; margin: 0 0 0.5rem; padding-bottom: 0.3rem; border-bottom: 1px solid var(--text); }
 .archive-list time { font-family: var(--font-ui); font-size: 0.8rem; }
 .archive-list a { color: var(--text); text-decoration: none; }
 .archive-list a:hover { color: var(--accent-text); }
@@ -138,7 +106,7 @@
 
 .colophon {
   max-width: 75rem; margin: 4rem auto 0; padding: 2rem 1.25rem 3rem; text-align: center;
-  border-top: 3px double var(--rule); font-family: var(--font-ui); font-size: 0.8rem; color: var(--muted);
+  border-top: 3px double var(--text); font-family: var(--font-ui); font-size: 0.8rem; color: var(--muted);
 }
 .colophon-title { font-family: var(--font-heading); font-weight: 900; font-size: 1.6rem; color: var(--text); text-decoration: none; }
 .colophon p { margin: 0.5rem 0 0; }

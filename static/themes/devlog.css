@@ -1,36 +1,4 @@
 /* Devlog — a modern developer blog with monospace details and a tag sidebar. */
-:root {
-  --bg: #ffffff;
-  --surface: #f6f8fa;
-  --text: #1f2328;
-  --muted: #59636e;
-  --accent-fill: #0b6bcb;
-  --on-accent: #fff;
-  --accent-text: #0b6bcb;
-  --accent-soft: #e7f1fb;
-  --border: #e1e4e8;
-  --code-bg: #f6f8fa;
-  --font-body: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-  --font-heading: var(--font-body);
-  --measure: 46rem;
-  --radius: 8px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0d1117;
-    --surface: #151b23;
-    --text: #e6edf3;
-    --muted: #9198a1;
-    --accent-fill: #58a6ff;
-    --on-accent: #0d1117;
-    --accent-text: #58a6ff;
-    --accent-soft: #14243a;
-    --border: #262c36;
-    --code-bg: #151b23;
-  }
-}
-
 body { font-size: 1rem; }
 
 .topbar { border-bottom: 1px solid var(--border); background: var(--bg); }
@@ -60,7 +28,7 @@ body { font-size: 1rem; }
 
 .tag {
   display: inline-flex; align-items: center; padding: 0.15rem 0.55rem; border-radius: 999px;
-  background: var(--accent-soft); color: var(--accent-text); font-family: var(--font-mono); font-size: 0.78rem;
+  background: var(--accent-soft, color-mix(in srgb, var(--accent-text) 10%, var(--bg))); color: var(--accent-text); font-family: var(--font-mono); font-size: 0.78rem;
   text-decoration: none;
 }
 .tag:hover { text-decoration: underline; }

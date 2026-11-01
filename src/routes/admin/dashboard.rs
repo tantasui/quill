@@ -11,7 +11,8 @@ use crate::models::{self};
 use crate::state::AppState;
 use crate::themes;
 
-use super::{admin_context, article_rows, notice_text, origin_warning, render, NoticeQuery};
+use super::articles::article_rows;
+use super::{admin_context, notice_text, origin_warning, render, NoticeQuery};
 
 pub async fn dashboard(State(state): State<AppState>, user: AdminUser, headers: HeaderMap, Query(q): Query<NoticeQuery>) -> AppResult<Response> {
     let s = state.settings();

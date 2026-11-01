@@ -59,6 +59,7 @@ pub async fn activate_theme(
     };
     s.theme = theme.id.to_string();
     state.save_settings(s.clone()).await?;
+    state.clear_layout().await?;
     Ok(redirect(&s, "/admin/themes?notice=theme"))
 }
 

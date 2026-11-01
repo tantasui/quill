@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
 use anyhow::Result;
+use chrono::Utc;
 use quill_design::Layout;
 use sqlx::SqlitePool;
 
@@ -38,6 +39,8 @@ pub struct Inner {
     pub listen: String,
     pub login_limiter: LoginLimiter,
     settings: RwLock<Settings>,
+    /// A customized layout and the preset it was customized from, if any.
+    custom_layout: RwLock<Option<(String, Layout)>>,
     /// Present until the first administrator account has been created.
     setup_code: RwLock<Option<String>>,
 }
@@ -59,6 +62,7 @@ impl AppState {
         setup_code: Option<String>,
     ) -> Result<Self> {
         let settings = Settings::load(&db).await?;
+        let custom_layout = load_custom_layout(&db).await?;
         let users: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM users")
             .fetch_one(&db)
             .await?;
@@ -70,16 +74,56 @@ impl AppState {
             listen,
             login_limiter: LoginLimiter::default(),
             settings: RwLock::new(settings),
+            custom_layout: RwLock::new(custom_layout),
             setup_code: RwLock::new(setup_code),
         })))
     }
 
+    /// What the blog looks like right now. A customized layout applies only
+    /// while the preset it came from is active.
     pub fn look(&self) -> Look {
         let settings = self.settings();
         let preset = themes::find(&settings.theme)
             .or_else(|| themes::find(themes::DEFAULT))
             .expect("the default preset exists");
-        Look::of_preset(preset)
+        let mut look = Look::of_preset(preset);
+        if let Some((from, layout)) = &*self.custom_layout.read().unwrap() {
+            if from == preset.id {
+                look.layout = layout.clone();
+            }
+        }
+        look
+    }
+
+    pub fn has_custom_layout(&self) -> bool {
+        let look = self.look();
+        themes::find(&look.preset).is_some_and(|preset| *preset.layout() != look.layout)
+    }
+
+    /// Stores a layout customized from the active preset.
+    pub async fn save_layout(&self, layout: Layout) -> Result<()> {
+        let preset = self.look().preset;
+        sqlx::query(
+            "INSERT INTO site_layout (id, preset, layout, updated_at) VALUES (1, ?, ?, ?)
+             ON CONFLICT (id) DO UPDATE SET preset = excluded.preset, layout = excluded.layout,
+                 updated_at = excluded.updated_at",
+        )
+        .bind(&preset)
+        .bind(layout.to_json())
+        .bind(Utc::now())
+        .execute(&self.db)
+        .await?;
+        *self.custom_layout.write().unwrap() = Some((preset, layout));
+        Ok(())
+    }
+
+    /// Goes back to the active preset's own layout.
+    pub async fn clear_layout(&self) -> Result<()> {
+        sqlx::query("DELETE FROM site_layout")
+            .execute(&self.db)
+            .await?;
+        *self.custom_layout.write().unwrap() = None;
+        Ok(())
     }
 
     pub fn settings(&self) -> Settings {
@@ -107,4 +151,22 @@ impl AppState {
     pub fn media_dir(&self) -> PathBuf {
         self.data_dir.join("media")
     }
+}
+
+/// Reads the stored layout. One that no longer validates, perhaps written by a
+/// different version, is ignored so the blog keeps working on its preset's layout.
+async fn load_custom_layout(db: &SqlitePool) -> Result<Option<(String, Layout)>> {
+    let row: Option<(String, String)> =
+        sqlx::query_as("SELECT preset, layout FROM site_layout WHERE id = 1")
+            .fetch_optional(db)
+            .await?;
+    Ok(
+        row.and_then(|(preset, json)| match Layout::from_json(&json) {
+            Ok(layout) => Some((preset, layout)),
+            Err(error) => {
+                tracing::warn!("ignoring the stored layout: {error}");
+                None
+            }
+        }),
+    )
 }

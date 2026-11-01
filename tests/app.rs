@@ -683,3 +683,105 @@ async fn backup_restore_and_export_roundtrip() {
     assert!(md.contains("tags: [\"a\"]"));
     assert!(md.ends_with("Body\n"));
 }
+
+fn customized_layout() -> quill_design::Layout {
+    let mut draft = quill::themes::find("editorial")
+        .unwrap()
+        .layout()
+        .to_draft();
+    draft.header.variant = quill_design::HeaderVariant::Masthead;
+    draft.try_into().unwrap()
+}
+
+#[tokio::test]
+async fn customized_layouts_survive_a_restart_and_are_dropped_by_changing_preset() {
+    let t = TestApp::ready().await;
+    t.state.save_layout(customized_layout()).await.unwrap();
+    assert!(t.state.has_custom_layout());
+    assert!(t.get("/blog/").await.body.contains("masthead-title"));
+
+    let restarted = AppState::new(
+        t.state.db.clone(),
+        t.state.data_dir.clone(),
+        t.state.listen.clone(),
+        None,
+    )
+    .await
+    .unwrap();
+    assert_eq!(restarted.look().layout, customized_layout());
+
+    let res = t
+        .post_form(
+            "/blog/admin/themes",
+            &[("_csrf", &t.csrf), ("theme", "devlog")],
+        )
+        .await;
+    assert_eq!(res.status, StatusCode::SEE_OTHER);
+    assert!(!t.state.has_custom_layout());
+    assert!(t.get("/blog/").await.body.contains(r#"class="topbar""#));
+    let stored: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM site_layout")
+        .fetch_one(&t.state.db)
+        .await
+        .unwrap();
+    assert_eq!(stored, 0);
+}
+
+#[tokio::test]
+async fn a_corrupt_stored_layout_falls_back_to_the_preset() {
+    let t = TestApp::ready().await;
+    sqlx::query(
+        "INSERT INTO site_layout (id, preset, layout, updated_at)
+         VALUES (1, 'editorial', '{\"header\": \"not a layout\"}', '2026-01-01')",
+    )
+    .execute(&t.state.db)
+    .await
+    .unwrap();
+    let restarted = AppState::new(
+        t.state.db.clone(),
+        t.state.data_dir.clone(),
+        t.state.listen.clone(),
+        None,
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        restarted.look().layout,
+        *quill::themes::find("editorial").unwrap().layout()
+    );
+}
+
+#[tokio::test]
+async fn upgrading_a_0_1_database_keeps_content_and_takes_a_snapshot() {
+    use std::borrow::Cow;
+
+    let dir = tempfile::tempdir().unwrap();
+    let pool = db::connect(&dir.path().join(db::DB_FILE)).await.unwrap();
+    // Build the database exactly as 0.1 left it: only its one migration applied.
+    let first_only = sqlx::migrate::Migrator {
+        migrations: Cow::Owned(vec![db::MIGRATOR.migrations[0].clone()]),
+        ..sqlx::migrate::Migrator::DEFAULT
+    };
+    first_only.run(&pool).await.unwrap();
+    sqlx::query(
+        "INSERT INTO articles (title, slug, created_at, updated_at)
+         VALUES ('Kept', 'kept', '2026-01-01', '2026-01-01')",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let backups = dir.path().join("backups");
+    db::migrate(&pool, Some(&backups)).await.unwrap();
+
+    let title: String = sqlx::query_scalar("SELECT title FROM articles")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(title, "Kept");
+    let snapshots: Vec<_> = std::fs::read_dir(&backups).unwrap().collect();
+    assert_eq!(snapshots.len(), 1, "a snapshot is written before migrating");
+    sqlx::query("SELECT COUNT(*) FROM site_layout")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+}

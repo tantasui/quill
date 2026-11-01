@@ -74,9 +74,7 @@ async fn main() -> ExitCode {
     let result = match cli.command {
         None => serve(&cli.data_dir, ServeArgs::parse_from(["quill"])).await,
         Some(Command::Serve(args)) => serve(&cli.data_dir, args).await,
-        Some(Command::Backup { out }) => backup::backup(&cli.data_dir, out)
-            .await
-            .map(|p| println!("Backup written to {}", p.display())),
+        Some(Command::Backup { out }) => backup::backup(&cli.data_dir, out).await.map(|p| println!("Backup written to {}", p.display())),
         Some(Command::Restore { from, yes }) => restore(&cli.data_dir, &from, yes).await,
         Some(Command::Export { out }) => backup::export(&cli.data_dir, &out)
             .await
@@ -142,9 +140,7 @@ async fn serve(data_dir: &Path, args: ServeArgs) -> Result<()> {
         println!("  Dashboard: {local}{}/admin   Public address: {}\n", s.base_path, s.base_url);
     }
 
-    axum::serve(listener, quill::app(state))
-        .with_graceful_shutdown(shutdown_signal())
-        .await?;
+    axum::serve(listener, quill::app(state)).with_graceful_shutdown(shutdown_signal()).await?;
     tracing::info!("stopped");
     Ok(())
 }
@@ -192,13 +188,17 @@ async fn restore(data_dir: &Path, from: &Path, yes: bool) -> Result<()> {
 async fn reset_password(data_dir: &Path, username: Option<String>) -> Result<()> {
     let pool = open_data_dir(data_dir).await?;
     let user: Option<(i64, String)> = match &username {
-        Some(name) => sqlx::query_as("SELECT id, username FROM users WHERE username = ?")
-            .bind(name)
-            .fetch_optional(&pool)
-            .await?,
-        None => sqlx::query_as("SELECT id, username FROM users ORDER BY id LIMIT 1")
-            .fetch_optional(&pool)
-            .await?,
+        Some(name) => {
+            sqlx::query_as("SELECT id, username FROM users WHERE username = ?")
+                .bind(name)
+                .fetch_optional(&pool)
+                .await?
+        }
+        None => {
+            sqlx::query_as("SELECT id, username FROM users ORDER BY id LIMIT 1")
+                .fetch_optional(&pool)
+                .await?
+        }
     };
     let Some((id, name)) = user else {
         bail!("no such administrator; finish setup in the browser first");

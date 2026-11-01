@@ -152,7 +152,9 @@ pub async fn home_page(State(state): State<AppState>, Path(n): Path<String>) -> 
 
 pub async fn render_home(state: &AppState, s: &Settings, theme: &str, page: i64) -> AppResult<Response> {
     if state.needs_setup() {
-        let html = state.views.render("public/setup_pending.html", json!({"base": s.base_path, "version": VERSION}))?;
+        let html = state
+            .views
+            .render("public/setup_pending.html", json!({"base": s.base_path, "version": VERSION}))?;
         return Ok(Html(html).into_response());
     }
     let per_page = s.posts_per_page;
@@ -166,7 +168,11 @@ pub async fn render_home(state: &AppState, s: &Settings, theme: &str, page: i64)
     ctx.insert("articles".into(), json!(article_views(state, s, &articles).await?));
     ctx.insert("pagination".into(), pagination(&s.base_path, page, total_pages));
     let path = if page == 1 { "/".to_string() } else { format!("/page/{page}") };
-    let title = if page == 1 { s.site_name.clone() } else { format!("{} — page {page}", s.site_name) };
+    let title = if page == 1 {
+        s.site_name.clone()
+    } else {
+        format!("{} — page {page}", s.site_name)
+    };
     seo(&mut ctx, title, &s.description, s.absolute(&path));
     ctx.insert("is_home".into(), json!(page == 1));
     Ok(render_page(state, theme, "index", &ctx)?.into_response())
@@ -193,14 +199,7 @@ pub async fn article_context(state: &AppState, s: &Settings, theme: &str, a: &Ar
     article_context_with_tags(state, s, theme, a, &tags, preview).await
 }
 
-pub async fn article_context_with_tags(
-    state: &AppState,
-    s: &Settings,
-    theme: &str,
-    a: &Article,
-    tags: &[Tag],
-    preview: bool,
-) -> AppResult<Ctx> {
+pub async fn article_context_with_tags(state: &AppState, s: &Settings, theme: &str, a: &Article, tags: &[Tag], preview: bool) -> AppResult<Ctx> {
     let mut ctx = base_context(state, s, theme).await?;
     let view = article_view(s, a, tags, true);
     let description = if a.meta_description.trim().is_empty() {
@@ -208,8 +207,17 @@ pub async fn article_context_with_tags(
     } else {
         a.meta_description.trim().to_string()
     };
-    let title = if a.meta_title.trim().is_empty() { a.title.clone() } else { a.meta_title.trim().to_string() };
-    seo(&mut ctx, format!("{title} — {}", s.site_name), &description, view["abs_url"].as_str().unwrap_or_default().to_string());
+    let title = if a.meta_title.trim().is_empty() {
+        a.title.clone()
+    } else {
+        a.meta_title.trim().to_string()
+    };
+    seo(
+        &mut ctx,
+        format!("{title} — {}", s.site_name),
+        &description,
+        view["abs_url"].as_str().unwrap_or_default().to_string(),
+    );
     ctx.insert("og_type".into(), json!("article"));
     if !a.cover_image.is_empty() {
         ctx.insert("og_image".into(), json!(media_url(&s.base_url, &a.cover_image)));
@@ -254,7 +262,12 @@ pub async fn tag(State(state): State<AppState>, Path(slug): Path<String>, Query(
         }),
     );
     let description = format!("Articles tagged “{}” on {}.", tag.name, s.site_name);
-    seo(&mut ctx, format!("{} — {}", tag.name, s.site_name), &description, s.absolute(&format!("/tags/{}", tag.slug)));
+    seo(
+        &mut ctx,
+        format!("{} — {}", tag.name, s.site_name),
+        &description,
+        s.absolute(&format!("/tags/{}", tag.slug)),
+    );
     Ok(render_page(&state, &theme, "tag", &ctx)?.into_response())
 }
 
@@ -274,7 +287,12 @@ pub async fn archive(State(state): State<AppState>) -> AppResult<Response> {
     let mut ctx = base_context(&state, &s, &theme).await?;
     ctx.insert("years".into(), json!(years));
     ctx.insert("total".into(), json!(articles.len()));
-    seo(&mut ctx, format!("Archive — {}", s.site_name), &format!("Every article published on {}.", s.site_name), s.absolute("/archive"));
+    seo(
+        &mut ctx,
+        format!("Archive — {}", s.site_name),
+        &format!("Every article published on {}.", s.site_name),
+        s.absolute("/archive"),
+    );
     Ok(render_page(&state, &theme, "archive", &ctx)?.into_response())
 }
 
@@ -307,9 +325,11 @@ pub async fn sitemap(State(state): State<AppState>) -> AppResult<Response> {
     let articles = models::list_published(&state.db, 50_000, 0).await?;
     let tags = models::public_tag_counts(&state.db, 10_000).await?;
     let mut urls = vec![json!({"loc": s.absolute("/")}), json!({"loc": s.absolute("/archive")})];
-    urls.extend(articles.iter().map(|a| {
-        json!({"loc": s.absolute(&format!("/posts/{}", a.slug)), "lastmod": a.updated_at.format("%Y-%m-%d").to_string()})
-    }));
+    urls.extend(
+        articles
+            .iter()
+            .map(|a| json!({"loc": s.absolute(&format!("/posts/{}", a.slug)), "lastmod": a.updated_at.format("%Y-%m-%d").to_string()})),
+    );
     urls.extend(tags.iter().map(|t| json!({"loc": s.absolute(&format!("/tags/{}", t.slug))})));
     let xml = state.views.render("public/sitemap.xml", json!({"urls": urls}))?;
     Ok(([(header::CONTENT_TYPE, "application/xml; charset=utf-8")], xml).into_response())

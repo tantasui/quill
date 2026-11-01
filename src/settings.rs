@@ -38,9 +38,7 @@ impl Default for Settings {
 
 impl Settings {
     pub async fn load(db: &SqlitePool) -> Result<Self> {
-        let rows: Vec<(String, String)> = sqlx::query_as("SELECT key, value FROM settings")
-            .fetch_all(db)
-            .await?;
+        let rows: Vec<(String, String)> = sqlx::query_as("SELECT key, value FROM settings").fetch_all(db).await?;
         let mut s = Settings::default();
         for (key, value) in rows {
             match key.as_str() {
@@ -88,9 +86,7 @@ impl Settings {
     pub fn set_base_url(&mut self, value: &str) {
         let value = value.trim_end_matches('/');
         self.base_url = value.to_string();
-        self.base_path = url::Url::parse(value)
-            .map(|u| u.path().trim_end_matches('/').to_string())
-            .unwrap_or_default();
+        self.base_path = url::Url::parse(value).map(|u| u.path().trim_end_matches('/').to_string()).unwrap_or_default();
     }
 
     /// Absolute URL for a blog-relative path such as `/posts/hello`.
@@ -100,9 +96,7 @@ impl Settings {
 
     /// Scheme, host and port of the public URL, e.g. `https://example.com`.
     pub fn origin(&self) -> String {
-        url::Url::parse(&self.base_url)
-            .map(|u| u.origin().ascii_serialization())
-            .unwrap_or_default()
+        url::Url::parse(&self.base_url).map(|u| u.origin().ascii_serialization()).unwrap_or_default()
     }
 }
 
@@ -117,8 +111,7 @@ pub fn normalize_base_url(input: &str) -> Result<String, String> {
     } else {
         format!("https://{input}")
     };
-    let url = url::Url::parse(&with_scheme)
-        .map_err(|_| format!("“{input}” isn't a valid web address. Use a form like https://example.com/blog."))?;
+    let url = url::Url::parse(&with_scheme).map_err(|_| format!("“{input}” isn't a valid web address. Use a form like https://example.com/blog."))?;
     if url.scheme() != "http" && url.scheme() != "https" {
         return Err("The address must start with http:// or https://.".into());
     }

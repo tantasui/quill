@@ -76,10 +76,9 @@ pub async fn restore(data_dir: &Path, from: &Path) -> Result<PathBuf> {
     // Make sure the snapshot is a readable blog database before touching anything.
     let pool = db::connect(&source_db).await?;
     let check: String = sqlx::query_scalar("PRAGMA integrity_check").fetch_one(&pool).await?;
-    let has_articles: i64 =
-        sqlx::query_scalar("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'articles'")
-            .fetch_one(&pool)
-            .await?;
+    let has_articles: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'articles'")
+        .fetch_one(&pool)
+        .await?;
     pool.close().await;
     if check != "ok" || has_articles == 0 {
         bail!("the backup database failed its integrity check ({check}); nothing was changed");
@@ -91,8 +90,7 @@ pub async fn restore(data_dir: &Path, from: &Path) -> Result<PathBuf> {
     for name in [DB_FILE.to_string(), format!("{DB_FILE}-wal"), format!("{DB_FILE}-shm"), "media".to_string()] {
         let path = data_dir.join(&name);
         if path.exists() {
-            std::fs::rename(&path, aside.join(&name))
-                .with_context(|| format!("could not move {} aside", path.display()))?;
+            std::fs::rename(&path, aside.join(&name)).with_context(|| format!("could not move {} aside", path.display()))?;
         }
     }
     std::fs::copy(&source_db, data_dir.join(DB_FILE))?;

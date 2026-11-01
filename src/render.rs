@@ -28,9 +28,7 @@ impl Default for Views {
 impl Views {
     pub fn new() -> Self {
         let mut env = Environment::new();
-        env.set_loader(|name| {
-            Ok(TemplateFiles::get(name).map(|f| String::from_utf8_lossy(&f.data).into_owned()))
-        });
+        env.set_loader(|name| Ok(TemplateFiles::get(name).map(|f| String::from_utf8_lossy(&f.data).into_owned())));
         env.set_auto_escape_callback(|name| {
             if name.ends_with(".html") || name.ends_with(".xml") {
                 AutoEscape::Html
@@ -40,23 +38,21 @@ impl Views {
         });
         // The default HTML escaper also encodes `/`, which turns every URL into
         // `&#x2f;blog&#x2f;…`. Escaping these five characters is sufficient.
-        env.set_formatter(|out, state, value| {
-            match value.as_str() {
-                Some(s) if state.auto_escape() == AutoEscape::Html && !value.is_safe() => {
-                    for c in s.chars() {
-                        match c {
-                            '&' => out.write_str("&amp;")?,
-                            '<' => out.write_str("&lt;")?,
-                            '>' => out.write_str("&gt;")?,
-                            '"' => out.write_str("&quot;")?,
-                            '\'' => out.write_str("&#39;")?,
-                            c => out.write_char(c)?,
-                        }
+        env.set_formatter(|out, state, value| match value.as_str() {
+            Some(s) if state.auto_escape() == AutoEscape::Html && !value.is_safe() => {
+                for c in s.chars() {
+                    match c {
+                        '&' => out.write_str("&amp;")?,
+                        '<' => out.write_str("&lt;")?,
+                        '>' => out.write_str("&gt;")?,
+                        '"' => out.write_str("&quot;")?,
+                        '\'' => out.write_str("&#39;")?,
+                        c => out.write_char(c)?,
                     }
-                    Ok(())
                 }
-                _ => minijinja::escape_formatter(out, state, value),
+                Ok(())
             }
+            _ => minijinja::escape_formatter(out, state, value),
         });
         env.set_trim_blocks(true);
         env.set_lstrip_blocks(true);

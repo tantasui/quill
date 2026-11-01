@@ -61,10 +61,7 @@ pub fn generate_setup_code() -> String {
 }
 
 pub fn normalize_setup_code(code: &str) -> String {
-    code.chars()
-        .filter(|c| c.is_ascii_alphanumeric())
-        .map(|c| c.to_ascii_uppercase())
-        .collect()
+    code.chars().filter(|c| c.is_ascii_alphanumeric()).map(|c| c.to_ascii_uppercase()).collect()
 }
 
 /// Creates a session and returns the raw token for the cookie. Only a hash of
@@ -72,20 +69,15 @@ pub fn normalize_setup_code(code: &str) -> String {
 pub async fn create_session(db: &SqlitePool, user_id: i64) -> Result<String> {
     let token = random_hex(32);
     let now = Utc::now();
-    sqlx::query("DELETE FROM sessions WHERE expires_at <= ?")
+    sqlx::query("DELETE FROM sessions WHERE expires_at <= ?").bind(now).execute(db).await?;
+    sqlx::query("INSERT INTO sessions (token_hash, user_id, csrf_token, created_at, expires_at) VALUES (?, ?, ?, ?, ?)")
+        .bind(hash_token(&token))
+        .bind(user_id)
+        .bind(random_hex(32))
         .bind(now)
+        .bind(now + chrono::Duration::days(SESSION_DAYS))
         .execute(db)
         .await?;
-    sqlx::query(
-        "INSERT INTO sessions (token_hash, user_id, csrf_token, created_at, expires_at) VALUES (?, ?, ?, ?, ?)",
-    )
-    .bind(hash_token(&token))
-    .bind(user_id)
-    .bind(random_hex(32))
-    .bind(now)
-    .bind(now + chrono::Duration::days(SESSION_DAYS))
-    .execute(db)
-    .await?;
     Ok(token)
 }
 

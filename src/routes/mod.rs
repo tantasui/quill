@@ -52,10 +52,7 @@ pub fn app(state: AppState) -> Router {
                 .layer(DefaultBodyLimit::max(MAX_UPLOAD_BYTES + 64 * 1024)),
         )
         .route("/admin/media/{id}/delete", post(admin::delete_media))
-        .layer(SetResponseHeaderLayer::overriding(
-            header::CACHE_CONTROL,
-            HeaderValue::from_static("no-store"),
-        ))
+        .layer(SetResponseHeaderLayer::overriding(header::CACHE_CONTROL, HeaderValue::from_static("no-store")))
         .layer(SetResponseHeaderLayer::overriding(
             header::HeaderName::from_static("x-robots-tag"),
             HeaderValue::from_static("noindex, nofollow"),

@@ -109,11 +109,7 @@ fn setup_context(s: &Settings, form: &SetupForm, errors: &[String]) -> Ctx {
     ctx
 }
 
-pub async fn setup_form(
-    State(state): State<AppState>,
-    headers: HeaderMap,
-    Extension(original): Extension<OriginalPath>,
-) -> AppResult<Response> {
+pub async fn setup_form(State(state): State<AppState>, headers: HeaderMap, Extension(original): Extension<OriginalPath>) -> AppResult<Response> {
     let s = state.settings();
     if !state.needs_setup() {
         return Ok(redirect(&s, "/admin/login"));
@@ -121,7 +117,12 @@ pub async fn setup_form(
     // Guess the public URL from how the browser reached us.
     let prefix = original.0.strip_suffix("/admin/setup").unwrap_or("");
     let guess = request_origin(&headers).map(|o| format!("{o}{prefix}")).unwrap_or_default();
-    let form = SetupForm { site_name: "My Blog".into(), base_url: guess, theme: themes::DEFAULT.into(), ..Default::default() };
+    let form = SetupForm {
+        site_name: "My Blog".into(),
+        base_url: guess,
+        theme: themes::DEFAULT.into(),
+        ..Default::default()
+    };
     Ok(render(&state, "setup", &setup_context(&s, &form, &[]))?.into_response())
 }
 
@@ -163,14 +164,12 @@ pub async fn setup_submit(State(state): State<AppState>, headers: HeaderMap, For
         state.finish_setup();
         return Ok(redirect(&s, "/admin/login"));
     }
-    let user_id: i64 = sqlx::query_scalar(
-        "INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, 'admin', ?) RETURNING id",
-    )
-    .bind(username)
-    .bind(hash)
-    .bind(Utc::now())
-    .fetch_one(&mut *tx)
-    .await?;
+    let user_id: i64 = sqlx::query_scalar("INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, 'admin', ?) RETURNING id")
+        .bind(username)
+        .bind(hash)
+        .bind(Utc::now())
+        .fetch_one(&mut *tx)
+        .await?;
     tx.commit().await?;
 
     s.site_name = form.site_name.trim().to_string();
@@ -221,7 +220,9 @@ pub async fn login_submit(State(state): State<AppState>, headers: HeaderMap, For
         Ok((StatusCode::UNAUTHORIZED, render(&state, "login", &ctx)?).into_response())
     };
     if state.login_limiter.is_blocked(username) {
-        return fail("Too many failed attempts for this account. Wait 15 minutes and try again, or reset the password from the server with “quill reset-password”.");
+        return fail(
+            "Too many failed attempts for this account. Wait 15 minutes and try again, or reset the password from the server with “quill reset-password”.",
+        );
     }
     let user: Option<(i64, String)> = sqlx::query_as("SELECT id, password_hash FROM users WHERE username = ?")
         .bind(username)
@@ -231,7 +232,10 @@ pub async fn login_submit(State(state): State<AppState>, headers: HeaderMap, For
     let valid = match &user {
         Some((_, hash)) => auth::verify_password(&form.password, hash),
         None => {
-            let _ = auth::verify_password(&form.password, "$argon2id$v=19$m=19456,t=2,p=1$c29tZXNhbHRzb21lc2FsdA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+            let _ = auth::verify_password(
+                &form.password,
+                "$argon2id$v=19$m=19456,t=2,p=1$c29tZXNhbHRzb21lc2FsdA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            );
             false
         }
     };
@@ -265,7 +269,10 @@ fn admin_article_row(s: &Settings, a: &Article, tags: &[Tag], now: DateTime<Utc>
     let state = a.state_label(now);
     let date = match state {
         "draft" => format!("Edited {}", public::format_date(a.updated_at)),
-        "scheduled" => format!("Goes live {}", a.published_at.map(|d| d.format("%B %-d, %Y at %H:%M UTC").to_string()).unwrap_or_default()),
+        "scheduled" => format!(
+            "Goes live {}",
+            a.published_at.map(|d| d.format("%B %-d, %Y at %H:%M UTC").to_string()).unwrap_or_default()
+        ),
         _ => format!("Published {}", a.published_at.map(public::format_date).unwrap_or_default()),
     };
     json!({
@@ -427,11 +434,7 @@ async fn build_input(state: &AppState, form: &ArticleForm, existing: Option<&Art
     };
 
     let cover_image = form.cover_image.trim().to_string();
-    if !(cover_image.is_empty()
-        || cover_image.starts_with("/media/")
-        || cover_image.starts_with("https://")
-        || cover_image.starts_with("http://"))
-    {
+    if !(cover_image.is_empty() || cover_image.starts_with("/media/") || cover_image.starts_with("https://") || cover_image.starts_with("http://")) {
         errors.push("The cover image must be an uploaded file or a full web address starting with https://.".to_string());
     }
 
@@ -474,7 +477,12 @@ fn editor_context(s: &Settings, user: &AdminUser, form: &ArticleForm, article: O
             "updated": public::format_date(a.updated_at),
         }))),
     );
-    ctx.insert("form_action".into(), json!(article.map(|a| format!("{}/admin/articles/{}", s.base_path, a.id)).unwrap_or_else(|| format!("{}/admin/articles", s.base_path))));
+    ctx.insert(
+        "form_action".into(),
+        json!(article
+            .map(|a| format!("{}/admin/articles/{}", s.base_path, a.id))
+            .unwrap_or_else(|| format!("{}/admin/articles", s.base_path))),
+    );
     ctx.insert("errors".into(), json!(errors));
     ctx.insert("notice".into(), json!(notice));
     ctx.insert("slug_prefix".into(), json!(format!("{}/posts/", s.base_url)));
@@ -560,10 +568,18 @@ pub async fn preview_article(State(state): State<AppState>, user: AdminUser, For
     }
     let s = state.settings();
     let now = Utc::now();
-    let title = if form.title.trim().is_empty() { "Untitled article".to_string() } else { form.title.trim().to_string() };
+    let title = if form.title.trim().is_empty() {
+        "Untitled article".to_string()
+    } else {
+        form.title.trim().to_string()
+    };
     let article = Article {
         id: 0,
-        slug: if form.slug.trim().is_empty() { slug::slugify(&title) } else { slug::slugify(&form.slug) },
+        slug: if form.slug.trim().is_empty() {
+            slug::slugify(&title)
+        } else {
+            slug::slugify(&form.slug)
+        },
         title,
         content: form.content.replace("\r\n", "\n"),
         excerpt: form.excerpt.trim().to_string(),
@@ -578,10 +594,17 @@ pub async fn preview_article(State(state): State<AppState>, user: AdminUser, For
     };
     let tags: Vec<Tag> = models::parse_tags(&form.tags)
         .into_iter()
-        .map(|name| Tag { id: 0, slug: slug::slugify(&name), name })
+        .map(|name| Tag {
+            id: 0,
+            slug: slug::slugify(&name),
+            name,
+        })
         .collect();
     let mut ctx = public::article_context_with_tags(&state, &s, &s.theme, &article, &tags, true).await?;
-    ctx.insert("preview_label".into(), json!("Preview — this is how the article will look. It hasn't been saved."));
+    ctx.insert(
+        "preview_label".into(),
+        json!("Preview — this is how the article will look. It hasn't been saved."),
+    );
     ctx.insert("noindex".into(), json!(true));
     Ok(public::render_page(&state, &s.theme, "article", &ctx)?.into_response())
 }
@@ -659,7 +682,10 @@ pub async fn preview_theme(State(state): State<AppState>, _user: AdminUser, Path
     ctx.insert("page_title".into(), json!(format!("{} theme preview — {}", theme.name, s.site_name)));
     ctx.insert("is_home".into(), json!(true));
     ctx.insert("preview".into(), json!(true));
-    ctx.insert("preview_label".into(), json!(format!("Previewing the {} theme. Visitors still see your current theme.", theme.name)));
+    ctx.insert(
+        "preview_label".into(),
+        json!(format!("Previewing the {} theme. Visitors still see your current theme.", theme.name)),
+    );
     ctx.insert("noindex".into(), json!(true));
     Ok(public::render_page(&state, theme.id, "index", &ctx)?.into_response())
 }
@@ -667,9 +693,21 @@ pub async fn preview_theme(State(state): State<AppState>, _user: AdminUser, Path
 fn sample_articles(s: &Settings) -> Vec<Value> {
     let now = Utc::now();
     let samples = [
-        ("Welcome to your new blog", "This is sample content so you can see how the theme lays out articles. Your own articles will appear here once you publish them.", "news"),
-        ("Writing with Markdown", "Headings, lists, links, images, quotes and code blocks are all supported, and the editor toolbar inserts them for you.", "guides"),
-        ("Choosing a theme", "Themes change how your blog looks without touching your content. Switch at any time from the Themes page.", "design"),
+        (
+            "Welcome to your new blog",
+            "This is sample content so you can see how the theme lays out articles. Your own articles will appear here once you publish them.",
+            "news",
+        ),
+        (
+            "Writing with Markdown",
+            "Headings, lists, links, images, quotes and code blocks are all supported, and the editor toolbar inserts them for you.",
+            "guides",
+        ),
+        (
+            "Choosing a theme",
+            "Themes change how your blog looks without touching your content. Switch at any time from the Themes page.",
+            "design",
+        ),
     ];
     samples
         .iter()
@@ -690,7 +728,16 @@ fn sample_articles(s: &Settings) -> Vec<Value> {
                 created_at: now,
                 updated_at: now,
             };
-            article_view(s, &a, &[Tag { id: 0, name: tag.to_string(), slug: tag.to_string() }], false)
+            article_view(
+                s,
+                &a,
+                &[Tag {
+                    id: 0,
+                    name: tag.to_string(),
+                    slug: tag.to_string(),
+                }],
+                false,
+            )
         })
         .collect()
 }
@@ -770,7 +817,10 @@ pub async fn settings_submit(State(state): State<AppState>, user: AdminUser, For
 pub async fn integration(State(state): State<AppState>, user: AdminUser, headers: HeaderMap) -> AppResult<Response> {
     let s = state.settings();
     let upstream = state.listen.replace("0.0.0.0", "127.0.0.1").replace("[::]", "[::1]");
-    let host = url::Url::parse(&s.base_url).ok().and_then(|u| u.host_str().map(str::to_string)).unwrap_or_default();
+    let host = url::Url::parse(&s.base_url)
+        .ok()
+        .and_then(|u| u.host_str().map(str::to_string))
+        .unwrap_or_default();
     let mut ctx = admin_context(&s, Some(&user), "integration");
     ctx.insert("upstream".into(), json!(upstream));
     ctx.insert("host".into(), json!(host));
@@ -920,7 +970,10 @@ pub async fn upload_media(State(state): State<AppState>, user: AdminUser, header
                 match field.bytes().await {
                     Ok(bytes) => file = Some((name, bytes)),
                     Err(e) => {
-                        let msg = format!("That file is too large or the upload was interrupted. The limit is {} MB.", MAX_UPLOAD_BYTES >> 20);
+                        let msg = format!(
+                            "That file is too large or the upload was interrupted. The limit is {} MB.",
+                            MAX_UPLOAD_BYTES >> 20
+                        );
                         return Ok(upload_error(wants_json, e.status(), &msg));
                     }
                 }
@@ -935,10 +988,18 @@ pub async fn upload_media(State(state): State<AppState>, user: AdminUser, header
         return Ok(upload_error(wants_json, StatusCode::BAD_REQUEST, "Choose a file to upload."));
     };
     if bytes.len() > MAX_UPLOAD_BYTES {
-        return Ok(upload_error(wants_json, StatusCode::PAYLOAD_TOO_LARGE, &format!("That file is too large. The limit is {} MB.", MAX_UPLOAD_BYTES >> 20)));
+        return Ok(upload_error(
+            wants_json,
+            StatusCode::PAYLOAD_TOO_LARGE,
+            &format!("That file is too large. The limit is {} MB.", MAX_UPLOAD_BYTES >> 20),
+        ));
     }
     let Some((ext, mime)) = detect_image(&bytes) else {
-        return Ok(upload_error(wants_json, StatusCode::UNSUPPORTED_MEDIA_TYPE, "Only PNG, JPEG, GIF, WebP and AVIF images can be uploaded."));
+        return Ok(upload_error(
+            wants_json,
+            StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            "Only PNG, JPEG, GIF, WebP and AVIF images can be uploaded.",
+        ));
     };
     let filename = format!("{}.{ext}", auth::random_hex(12));
     tokio::fs::create_dir_all(state.media_dir()).await?;

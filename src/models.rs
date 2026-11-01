@@ -163,10 +163,7 @@ pub async fn neighbours(db: &SqlitePool, a: &Article) -> Result<(Option<Article>
 }
 
 pub async fn find_tag(db: &SqlitePool, slug: &str) -> Result<Option<Tag>> {
-    Ok(sqlx::query_as("SELECT * FROM tags WHERE slug = ?")
-        .bind(slug)
-        .fetch_optional(db)
-        .await?)
+    Ok(sqlx::query_as("SELECT * FROM tags WHERE slug = ?").bind(slug).fetch_optional(db).await?)
 }
 
 /// Tags with their number of publicly visible articles, most used first.
@@ -209,10 +206,7 @@ pub async fn tags_for(db: &SqlitePool, article_ids: &[i64]) -> Result<HashMap<i6
 // ---- Administration ---------------------------------------------------------
 
 pub async fn get(db: &SqlitePool, id: i64) -> Result<Option<Article>> {
-    Ok(sqlx::query_as("SELECT * FROM articles WHERE id = ?")
-        .bind(id)
-        .fetch_optional(db)
-        .await?)
+    Ok(sqlx::query_as("SELECT * FROM articles WHERE id = ?").bind(id).fetch_optional(db).await?)
 }
 
 /// All articles for the dashboard. `filter` is `all`, `draft`, `published` or
@@ -236,9 +230,7 @@ pub async fn list_admin(db: &SqlitePool, filter: &str, limit: i64) -> Result<Vec
 }
 
 pub async fn all_articles(db: &SqlitePool) -> Result<Vec<Article>> {
-    Ok(sqlx::query_as("SELECT * FROM articles ORDER BY id")
-        .fetch_all(db)
-        .await?)
+    Ok(sqlx::query_as("SELECT * FROM articles ORDER BY id").fetch_all(db).await?)
 }
 
 #[derive(Debug, Default, Serialize)]
@@ -353,10 +345,7 @@ pub async fn update(db: &SqlitePool, existing: &Article, input: &ArticleInput) -
 
 pub async fn delete(db: &SqlitePool, id: i64) -> Result<()> {
     let mut tx = db.begin().await?;
-    sqlx::query("DELETE FROM articles WHERE id = ?")
-        .bind(id)
-        .execute(&mut *tx)
-        .await?;
+    sqlx::query("DELETE FROM articles WHERE id = ?").bind(id).execute(&mut *tx).await?;
     delete_orphan_tags(&mut tx).await?;
     tx.commit().await?;
     Ok(())
@@ -420,7 +409,5 @@ pub struct Media {
 }
 
 pub async fn list_media(db: &SqlitePool) -> Result<Vec<Media>> {
-    Ok(sqlx::query_as("SELECT * FROM media ORDER BY created_at DESC, id DESC")
-        .fetch_all(db)
-        .await?)
+    Ok(sqlx::query_as("SELECT * FROM media ORDER BY created_at DESC, id DESC").fetch_all(db).await?)
 }

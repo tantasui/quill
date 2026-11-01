@@ -15,11 +15,7 @@ static SANITIZER: LazyLock<ammonia::Builder<'static>> = LazyLock::new(|| {
         .attribute_filter(|element, attribute, value| match (element, attribute) {
             ("input", "type") if value != "checkbox" => None,
             // Tables emit `style="text-align: …"`; allow nothing else.
-            ("td" | "th", "style")
-                if !matches!(value, "text-align: left" | "text-align: center" | "text-align: right") =>
-            {
-                None
-            }
+            ("td" | "th", "style") if !matches!(value, "text-align: left" | "text-align: center" | "text-align: right") => None,
             _ => Some(value.into()),
         });
     b.url_relative(ammonia::UrlRelative::PassThrough);
@@ -27,11 +23,7 @@ static SANITIZER: LazyLock<ammonia::Builder<'static>> = LazyLock::new(|| {
 });
 
 fn options() -> Options {
-    Options::ENABLE_TABLES
-        | Options::ENABLE_FOOTNOTES
-        | Options::ENABLE_STRIKETHROUGH
-        | Options::ENABLE_TASKLISTS
-        | Options::ENABLE_SMART_PUNCTUATION
+    Options::ENABLE_TABLES | Options::ENABLE_FOOTNOTES | Options::ENABLE_STRIKETHROUGH | Options::ENABLE_TASKLISTS | Options::ENABLE_SMART_PUNCTUATION
 }
 
 /// Renders Markdown to sanitized HTML. Links and images that point at uploaded
@@ -46,13 +38,23 @@ pub fn render(markdown: &str, media_prefix: &str) -> String {
         }
     };
     let events = Parser::new_ext(markdown, options()).map(|event| match event {
-        Event::Start(Tag::Image { link_type, dest_url, title, id }) => Event::Start(Tag::Image {
+        Event::Start(Tag::Image {
+            link_type,
+            dest_url,
+            title,
+            id,
+        }) => Event::Start(Tag::Image {
             link_type,
             dest_url: prefix(dest_url),
             title,
             id,
         }),
-        Event::Start(Tag::Link { link_type, dest_url, title, id }) => Event::Start(Tag::Link {
+        Event::Start(Tag::Link {
+            link_type,
+            dest_url,
+            title,
+            id,
+        }) => Event::Start(Tag::Link {
             link_type,
             dest_url: prefix(dest_url),
             title,
@@ -73,9 +75,7 @@ pub fn plain_text(markdown: &str, max_chars: usize) -> String {
     for event in Parser::new_ext(markdown, options()) {
         match event {
             Event::Start(Tag::CodeBlock(_) | Tag::Image { .. } | Tag::Heading { .. }) => in_skipped += 1,
-            Event::End(TagEnd::CodeBlock | TagEnd::Image | TagEnd::Heading(_)) => {
-                in_skipped = in_skipped.saturating_sub(1)
-            }
+            Event::End(TagEnd::CodeBlock | TagEnd::Image | TagEnd::Heading(_)) => in_skipped = in_skipped.saturating_sub(1),
             Event::Text(t) | Event::Code(t) if in_skipped == 0 => out.push_str(&t),
             Event::SoftBreak | Event::HardBreak | Event::End(TagEnd::Paragraph) => out.push(' '),
             _ => {}

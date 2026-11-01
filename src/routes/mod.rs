@@ -44,7 +44,7 @@ pub fn app(state: AppState) -> Router {
         .route("/admin/themes/{id}/preview", get(admin::preview_theme))
         .route("/admin/settings", get(admin::settings_form).post(admin::settings_submit))
         .route("/admin/integration", get(admin::integration))
-        .route("/admin/account", get(admin::account_form).post(admin::account_submit))
+        .route("/admin/account", get(admin::account::account_form).post(admin::account::account_submit))
         .route(
             "/admin/media",
             get(admin::media::media)

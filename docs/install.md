@@ -9,7 +9,7 @@ Quill runs as a small web server on your machine. Your existing web server (ngin
 ### With Docker
 
 ```sh
-git clone <this repository> quill && cd quill
+git clone https://github.com/tantasui/quill.git && cd quill
 docker compose up -d
 docker compose logs quill
 ```
@@ -41,7 +41,7 @@ Open `http://<server>:3000/admin/setup`. If the server is remote, use an SSH tun
 1. Enter the setup code. The code stops anyone who finds your server first from claiming it.
 2. Name the blog and enter its **public address**, the one readers will use, such as `https://example.com/blog`. If your domain isn't connected yet, keep the suggested local address and change it later in **Settings**.
 3. Create your administrator account.
-4. Pick a theme. You can preview and switch themes at any time.
+4. Pick a preset. You can preview presets, rearrange the layout and switch at any time.
 
 ## 3. Connect your website
 

@@ -70,10 +70,9 @@ pub async fn migrate(pool: &SqlitePool, backup_dir: Option<&Path>) -> Result<()>
         }
     }
 
-    MIGRATOR
-        .run(pool)
-        .await
-        .context("database migration failed; your data is untouched and a snapshot is in the backups folder")
+    MIGRATOR.run(pool).await.context(
+        "database migration failed; your data is untouched and a snapshot is in the backups folder",
+    )
 }
 
 /// Writes a consistent copy of the database to `dest`, safe while the server runs.

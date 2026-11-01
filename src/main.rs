@@ -9,7 +9,11 @@ use tracing_subscriber::EnvFilter;
 use quill::{auth, backup, db, settings, AppState};
 
 #[derive(Parser)]
-#[command(name = "quill", version, about = "A lightweight, self-hosted blogging engine.")]
+#[command(
+    name = "quill",
+    version,
+    about = "A lightweight, self-hosted blogging engine."
+)]
 struct Cli {
     /// Folder for the database, uploads and backups.
     #[arg(long, env = "QUILL_DATA_DIR", default_value = "./data", global = true)]
@@ -66,7 +70,10 @@ struct ServeArgs {
 #[tokio::main]
 async fn main() -> ExitCode {
     tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::try_from_env("QUILL_LOG").unwrap_or_else(|_| EnvFilter::new("info,sqlx=warn")))
+        .with_env_filter(
+            EnvFilter::try_from_env("QUILL_LOG")
+                .unwrap_or_else(|_| EnvFilter::new("info,sqlx=warn")),
+        )
         .with_target(false)
         .init();
 
@@ -106,10 +113,17 @@ async fn open_data_dir(data_dir: &Path) -> Result<sqlx::SqlitePool> {
 
 async fn serve(data_dir: &Path, args: ServeArgs) -> Result<()> {
     let pool = open_data_dir(data_dir).await?;
-    let state = AppState::new(pool, data_dir.to_path_buf(), args.listen.clone(), args.setup_code).await?;
+    let state = AppState::new(
+        pool,
+        data_dir.to_path_buf(),
+        args.listen.clone(),
+        args.setup_code,
+    )
+    .await?;
 
     if let Some(url) = args.base_url {
-        let url = settings::normalize_base_url(&url).map_err(|e| anyhow::anyhow!("QUILL_BASE_URL: {e}"))?;
+        let url = settings::normalize_base_url(&url)
+            .map_err(|e| anyhow::anyhow!("QUILL_BASE_URL: {e}"))?;
         let mut s = state.settings();
         if s.base_url != url {
             s.set_base_url(&url);
@@ -133,13 +147,20 @@ async fn serve(data_dir: &Path, args: ServeArgs) -> Result<()> {
 
     let local = format!("http://{}", args.listen.replace("0.0.0.0", "localhost"));
     let s = state.settings();
-    println!("\n  Quill {} is running at {local}{}", env!("CARGO_PKG_VERSION"), s.base_path);
+    println!(
+        "\n  Quill {} is running at {local}{}",
+        env!("CARGO_PKG_VERSION"),
+        s.base_path
+    );
     if let Some(code) = state.setup_code() {
         println!("\n  Finish setting up in your browser:");
         println!("    {local}/admin/setup");
         println!("  Setup code: {code}\n");
     } else {
-        println!("  Dashboard: {local}{}/admin   Public address: {}\n", s.base_path, s.base_url);
+        println!(
+            "  Dashboard: {local}{}/admin   Public address: {}\n",
+            s.base_path, s.base_url
+        );
     }
 
     axum::serve(listener, quill::app(state))
@@ -155,7 +176,8 @@ async fn shutdown_signal() {
     };
     #[cfg(unix)]
     let terminate = async {
-        if let Ok(mut s) = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
+        if let Ok(mut s) = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+        {
             s.recv().await;
         }
     };
@@ -177,14 +199,23 @@ fn prompt(question: &str) -> Result<String> {
 
 async fn restore(data_dir: &Path, from: &Path, yes: bool) -> Result<()> {
     if !yes {
-        println!("This replaces the blog in {} with the backup in {}.", data_dir.display(), from.display());
-        println!("Stop the server before continuing. The current data will be moved aside, not deleted.");
+        println!(
+            "This replaces the blog in {} with the backup in {}.",
+            data_dir.display(),
+            from.display()
+        );
+        println!(
+            "Stop the server before continuing. The current data will be moved aside, not deleted."
+        );
         if !prompt("Continue? [y/N] ")?.eq_ignore_ascii_case("y") {
             bail!("restore cancelled");
         }
     }
     let aside = backup::restore(data_dir, from).await?;
-    println!("Restored. The previous data was moved to {}.", aside.display());
+    println!(
+        "Restored. The previous data was moved to {}.",
+        aside.display()
+    );
     println!("Start the server again; any needed database upgrades run automatically.");
     Ok(())
 }
@@ -192,13 +223,17 @@ async fn restore(data_dir: &Path, from: &Path, yes: bool) -> Result<()> {
 async fn reset_password(data_dir: &Path, username: Option<String>) -> Result<()> {
     let pool = open_data_dir(data_dir).await?;
     let user: Option<(i64, String)> = match &username {
-        Some(name) => sqlx::query_as("SELECT id, username FROM users WHERE username = ?")
-            .bind(name)
-            .fetch_optional(&pool)
-            .await?,
-        None => sqlx::query_as("SELECT id, username FROM users ORDER BY id LIMIT 1")
-            .fetch_optional(&pool)
-            .await?,
+        Some(name) => {
+            sqlx::query_as("SELECT id, username FROM users WHERE username = ?")
+                .bind(name)
+                .fetch_optional(&pool)
+                .await?
+        }
+        None => {
+            sqlx::query_as("SELECT id, username FROM users ORDER BY id LIMIT 1")
+                .fetch_optional(&pool)
+                .await?
+        }
     };
     let Some((id, name)) = user else {
         bail!("no such administrator; finish setup in the browser first");
@@ -212,7 +247,10 @@ async fn reset_password(data_dir: &Path, username: Option<String>) -> Result<()>
         .bind(id)
         .execute(&pool)
         .await?;
-    sqlx::query("DELETE FROM sessions WHERE user_id = ?").bind(id).execute(&pool).await?;
+    sqlx::query("DELETE FROM sessions WHERE user_id = ?")
+        .bind(id)
+        .execute(&pool)
+        .await?;
     println!("Password updated for {name}. All existing sessions were signed out.");
     Ok(())
 }

@@ -87,13 +87,20 @@ pub async fn list_published(db: &SqlitePool, limit: i64, offset: i64) -> Result<
 }
 
 pub async fn count_published(db: &SqlitePool) -> Result<i64> {
-    Ok(sqlx::query_scalar(&format!("SELECT COUNT(*) FROM articles WHERE {PUBLIC}"))
-        .bind(Utc::now())
-        .fetch_one(db)
-        .await?)
+    Ok(
+        sqlx::query_scalar(&format!("SELECT COUNT(*) FROM articles WHERE {PUBLIC}"))
+            .bind(Utc::now())
+            .fetch_one(db)
+            .await?,
+    )
 }
 
-pub async fn list_published_by_tag(db: &SqlitePool, tag_id: i64, limit: i64, offset: i64) -> Result<Vec<Article>> {
+pub async fn list_published_by_tag(
+    db: &SqlitePool,
+    tag_id: i64,
+    limit: i64,
+    offset: i64,
+) -> Result<Vec<Article>> {
     Ok(sqlx::query_as(&format!(
         "SELECT * FROM articles WHERE {PUBLIC}
            AND id IN (SELECT article_id FROM article_tags WHERE tag_id = ?)
@@ -119,11 +126,13 @@ pub async fn count_published_by_tag(db: &SqlitePool, tag_id: i64) -> Result<i64>
 }
 
 pub async fn find_published(db: &SqlitePool, slug: &str) -> Result<Option<Article>> {
-    Ok(sqlx::query_as(&format!("SELECT * FROM articles WHERE slug = ? AND {PUBLIC}"))
-        .bind(slug)
-        .bind(Utc::now())
-        .fetch_optional(db)
-        .await?)
+    Ok(sqlx::query_as(&format!(
+        "SELECT * FROM articles WHERE slug = ? AND {PUBLIC}"
+    ))
+    .bind(slug)
+    .bind(Utc::now())
+    .fetch_optional(db)
+    .await?)
 }
 
 /// The current slug of a published article that used to live at `old_slug`.
@@ -139,8 +148,13 @@ pub async fn find_redirect(db: &SqlitePool, old_slug: &str) -> Result<Option<Str
 }
 
 /// The published articles immediately older and newer than `a`.
-pub async fn neighbours(db: &SqlitePool, a: &Article) -> Result<(Option<Article>, Option<Article>)> {
-    let Some(at) = a.published_at else { return Ok((None, None)) };
+pub async fn neighbours(
+    db: &SqlitePool,
+    a: &Article,
+) -> Result<(Option<Article>, Option<Article>)> {
+    let Some(at) = a.published_at else {
+        return Ok((None, None));
+    };
     let older = sqlx::query_as(&format!(
         "SELECT * FROM articles WHERE {PUBLIC} AND (published_at, id) < (?, ?)
          ORDER BY published_at DESC, id DESC LIMIT 1"
@@ -201,7 +215,9 @@ pub async fn tags_for(db: &SqlitePool, article_ids: &[i64]) -> Result<HashMap<i6
         q = q.bind(id);
     }
     for (article_id, id, name, slug) in q.fetch_all(db).await? {
-        map.entry(article_id).or_default().push(Tag { id, name, slug });
+        map.entry(article_id)
+            .or_default()
+            .push(Tag { id, name, slug });
     }
     Ok(map)
 }
@@ -259,16 +275,26 @@ pub async fn counts(db: &SqlitePool) -> Result<Counts> {
     .bind(Utc::now())
     .fetch_one(db)
     .await?;
-    Ok(Counts { published, scheduled, drafts })
+    Ok(Counts {
+        published,
+        scheduled,
+        drafts,
+    })
 }
 
 /// Another article already using `slug`, if any.
-pub async fn slug_owner(db: &SqlitePool, slug: &str, except_id: Option<i64>) -> Result<Option<String>> {
-    Ok(sqlx::query_scalar("SELECT title FROM articles WHERE slug = ? AND id IS NOT ?")
-        .bind(slug)
-        .bind(except_id)
-        .fetch_optional(db)
-        .await?)
+pub async fn slug_owner(
+    db: &SqlitePool,
+    slug: &str,
+    except_id: Option<i64>,
+) -> Result<Option<String>> {
+    Ok(
+        sqlx::query_scalar("SELECT title FROM articles WHERE slug = ? AND id IS NOT ?")
+            .bind(slug)
+            .bind(except_id)
+            .fetch_optional(db)
+            .await?,
+    )
 }
 
 /// `base`, or `base-2`, `base-3`… whichever is free.
@@ -317,11 +343,13 @@ pub async fn update(db: &SqlitePool, existing: &Article, input: &ArticleInput) -
     let mut tx = db.begin().await?;
     if existing.slug != input.slug {
         if existing.is_published() {
-            sqlx::query("INSERT OR REPLACE INTO slug_redirects (old_slug, article_id) VALUES (?, ?)")
-                .bind(&existing.slug)
-                .bind(existing.id)
-                .execute(&mut *tx)
-                .await?;
+            sqlx::query(
+                "INSERT OR REPLACE INTO slug_redirects (old_slug, article_id) VALUES (?, ?)",
+            )
+            .bind(&existing.slug)
+            .bind(existing.id)
+            .execute(&mut *tx)
+            .await?;
         }
         sqlx::query("DELETE FROM slug_redirects WHERE old_slug = ?")
             .bind(&input.slug)
@@ -362,7 +390,11 @@ pub async fn delete(db: &SqlitePool, id: i64) -> Result<()> {
     Ok(())
 }
 
-async fn set_tags(tx: &mut sqlx::SqliteConnection, article_id: i64, names: &[String]) -> Result<()> {
+async fn set_tags(
+    tx: &mut sqlx::SqliteConnection,
+    article_id: i64,
+    names: &[String],
+) -> Result<()> {
     sqlx::query("DELETE FROM article_tags WHERE article_id = ?")
         .bind(article_id)
         .execute(&mut *tx)
@@ -420,7 +452,9 @@ pub struct Media {
 }
 
 pub async fn list_media(db: &SqlitePool) -> Result<Vec<Media>> {
-    Ok(sqlx::query_as("SELECT * FROM media ORDER BY created_at DESC, id DESC")
-        .fetch_all(db)
-        .await?)
+    Ok(
+        sqlx::query_as("SELECT * FROM media ORDER BY created_at DESC, id DESC")
+            .fetch_all(db)
+            .await?,
+    )
 }

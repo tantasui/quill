@@ -1,0 +1,4 @@
+<a href="{{ base }}/">{{ layout.labels.home }}</a>
+{% for t in nav_tags[:layout.header.nav_tags] %}<a href="{{ t.url }}">{{ t.name }}</a>{% endfor %}
+<a href="{{ base }}/archive">{{ layout.labels.archive }}</a>
+{% if layout.header.nav_feed %}<a href="{{ feed_url }}">{{ layout.labels.feed }}</a>{% endif %}

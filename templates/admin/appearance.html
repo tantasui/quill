@@ -1,0 +1,113 @@
+{% extends "admin/base.html" %}
+{% block title %}Appearance{% endblock %}
+{% block head %}<script src="{{ base }}/static/admin/appearance.js?v={{ version }}" defer></script>{% endblock %}
+{% block content %}
+{% macro choice(name, label, value, options) %}
+<div class="field">
+  <label for="{{ name }}">{{ label }}</label>
+  <select id="{{ name }}" name="{{ name }}">
+    {% for key, text in options %}<option value="{{ key }}"{% if key == value %} selected{% endif %}>{{ text }}</option>{% endfor %}
+  </select>
+</div>
+{% endmacro %}
+<div class="page-head">
+  <h1>Appearance</h1>
+</div>
+<p class="lead">Start from a preset, then arrange the layout to make it yours. Your articles, links and settings stay exactly as they are, so you can change this at any time.</p>
+
+{% if layout_error %}<div class="alert alert-error" role="alert">{{ layout_error }}</div>{% endif %}
+
+<h2 class="section-heading">Presets</h2>
+<div class="theme-grid">
+  {% for t in themes %}
+  <article class="theme-card{% if t.active %} is-active{% endif %}">
+    <div class="theme-thumb">
+      <iframe src="{{ t.preview_url }}" title="{{ t.name }} preset preview" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+    </div>
+    <div class="theme-body">
+      <h3>{{ t.name }}{% if t.active %} <span class="badge badge-published">{{ "Active, customized" if customized else "Active" }}</span>{% endif %}</h3>
+      <p>{{ t.description }}</p>
+      <div class="theme-actions">
+        <a class="btn btn-small" href="{{ t.preview_url }}" target="_blank" rel="noopener">Full preview ↗</a>
+        {% if not t.active or customized %}
+        <form method="post" action="{{ base }}/admin/themes">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          <button type="submit" name="theme" value="{{ t.id }}" class="btn btn-small btn-primary"{% if customized %} data-confirm="This replaces your customized layout with the {{ t.name }} layout. Your articles aren't affected."{% endif %}>{{ "Reset to " ~ t.name if t.active else "Use " ~ t.name }}</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+
+<h2 class="section-heading">Layout</h2>
+<form method="post" action="{{ base }}/admin/appearance" class="layout-editor" id="layout-form">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <div class="layout-controls">
+    <section class="panel">
+      <h3>Page</h3>
+      {{ choice("page_width", "Width", layout.page_width, [("narrow", "Narrow: one reading column"), ("regular", "Regular"), ("wide", "Wide")]) }}
+      {{ choice("header_variant", "Header", layout.header.variant, [("centered", "Centered"), ("left", "Left-aligned bar"), ("masthead", "Newspaper masthead")]) }}
+      {{ choice("tag_rail", "Tag sidebar", layout.tag_rail, [("none", "None"), ("left", "Left"), ("right", "Right")]) }}
+      {{ choice("footer_variant", "Footer", layout.footer.variant, [("simple", "Simple"), ("columns", "Columns")]) }}
+    </section>
+
+    <section class="panel">
+      <h3>Home page</h3>
+      <p class="help">Sections appear in this order.</p>
+      <ol class="section-list" id="home-sections">
+        {% for section in sections %}
+        <li class="section-row" data-section="{{ section.key }}">
+          <div class="section-main">
+            {% if section.key == "feed" %}
+            <input type="hidden" name="feed" value="on">
+            <span class="section-name">Article feed</span>
+            {% else %}
+            <label class="section-name"><input type="checkbox" name="{{ section.key }}" value="on"{% if section.enabled %} checked{% endif %}> {{ section.label }}</label>
+            {% endif %}
+            <span class="section-order">
+              <label class="visually-hidden" for="{{ section.key }}_order">Position of {{ section.label }}</label>
+              <input type="number" id="{{ section.key }}_order" name="{{ section.key }}_order" value="{{ loop.index }}" min="1" max="9" class="order-input">
+              <button type="button" class="btn btn-small order-up" hidden aria-label="Move {{ section.label }} up">↑</button>
+              <button type="button" class="btn btn-small order-down" hidden aria-label="Move {{ section.label }} down">↓</button>
+            </span>
+          </div>
+          {% if section.key == "feed" %}
+          {{ choice("feed_variant", "Style", section.variant, [("list", "List"), ("grid", "Grid"), ("cards", "Cards"), ("compact", "Compact rows")]) }}
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    <section class="panel">
+      <h3>Article page</h3>
+      {{ choice("article_measure", "Text width", layout.article.measure, [("narrow", "Narrow"), ("wide", "Wide")]) }}
+      {{ choice("article_cover", "Cover image", layout.article.cover, [("hero", "Large hero"), ("inline", "In the column"), ("none", "Hidden")]) }}
+      <fieldset class="check-group">
+        <legend class="visually-hidden">Article details</legend>
+        <label><input type="checkbox" name="show_author" value="on"{% if layout.article.show_author %} checked{% endif %}> Show author</label>
+        <label><input type="checkbox" name="show_date" value="on"{% if layout.article.show_date %} checked{% endif %}> Show date</label>
+        <label><input type="checkbox" name="show_reading_time" value="on"{% if layout.article.show_reading_time %} checked{% endif %}> Show reading time</label>
+      </fieldset>
+    </section>
+
+    <div class="layout-actions">
+      <button type="submit" class="btn btn-primary">Save layout</button>
+      <button type="submit" id="preview-button" class="btn" formaction="{{ base }}/admin/appearance/preview" formtarget="layout-preview">Update preview</button>
+    </div>
+  </div>
+
+  <div class="layout-preview">
+    <div class="field preview-page">
+      <label for="preview_page">Previewing</label>
+      <select id="preview_page" name="page">
+        <option value="home">Home page</option>
+        <option value="article">Article</option>
+      </select>
+    </div>
+    <iframe name="layout-preview" title="Layout preview"></iframe>
+  </div>
+</form>
+{% endblock %}

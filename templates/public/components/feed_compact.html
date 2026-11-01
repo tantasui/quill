@@ -1,9 +1,5 @@
-{% extends layout %}
-{% import "public/_macros.html" as m %}
-{% block content %}
-{% if articles %}
 <ol class="post-rows">
-  {% for a in articles %}
+  {% for a in feed_articles %}
   <li class="post-row">
     <time class="post-row-date" datetime="{{ a.date_iso }}">{{ a.date_iso[:10] }}</time>
     <div class="post-row-body">
@@ -14,8 +10,3 @@
   </li>
   {% endfor %}
 </ol>
-{{ m.pagination(pagination) }}
-{% else %}
-<div class="empty"><p><code>0 posts</code> — nothing published yet.</p></div>
-{% endif %}
-{% endblock %}

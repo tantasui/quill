@@ -25,7 +25,7 @@
   <a class="stat" href="{{ base }}/admin/articles?status=published"><span class="stat-value">{{ counts.published }}</span><span class="stat-label">Published</span></a>
   <a class="stat" href="{{ base }}/admin/articles?status=draft"><span class="stat-value">{{ counts.drafts }}</span><span class="stat-label">Drafts</span></a>
   <a class="stat" href="{{ base }}/admin/articles?status=scheduled"><span class="stat-value">{{ counts.scheduled }}</span><span class="stat-label">Scheduled</span></a>
-  <a class="stat" href="{{ base }}/admin/themes"><span class="stat-value stat-value-text">{{ theme_name }}</span><span class="stat-label">Theme</span></a>
+  <a class="stat" href="{{ base }}/admin/appearance"><span class="stat-value stat-value-text">{{ theme_name }}</span><span class="stat-label">Preset</span></a>
 </div>
 
 {% set remaining = checklist|rejectattr("done")|list %}

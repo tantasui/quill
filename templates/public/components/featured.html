@@ -1,0 +1,10 @@
+{% import "public/_macros.html" as m %}
+<article class="lead-story{% if lead.cover_image %} has-cover{% endif %}">
+  {% if lead.cover_image %}<a class="lead-cover" href="{{ lead.url }}" tabindex="-1" aria-hidden="true"><img src="{{ lead.cover_image }}" alt=""></a>{% endif %}
+  <div class="lead-text">
+    {% if lead.tags %}<p class="kicker">{{ lead.tags[0].name }}</p>{% endif %}
+    <h2 class="lead-title"><a href="{{ lead.url }}">{{ lead.title }}</a></h2>
+    {% if lead.excerpt %}<p class="lead-excerpt">{{ lead.excerpt }}</p>{% endif %}
+    {{ m.meta(lead, show_author=true) }}
+  </div>
+</article>

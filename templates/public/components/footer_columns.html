@@ -1,0 +1,22 @@
+<footer class="site-footer">
+  <div class="footer-columns">
+    <div class="footer-column">
+      <a class="footer-title" href="{{ base }}/">{{ site.name }}</a>
+      {% if site.description %}<p>{{ site.description }}</p>{% endif %}
+    </div>
+    {% if nav_tags %}
+    <div class="footer-column">
+      <h2>Tags</h2>
+      <ul>{% for t in nav_tags[:5] %}<li><a href="{{ t.url }}">{{ t.name }}</a></li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+    <div class="footer-column">
+      <h2>More</h2>
+      <ul>
+        <li><a href="{{ base }}/archive">{{ layout.labels.archive }}</a></li>
+        <li><a href="{{ feed_url }}">{{ layout.labels.feed }}</a></li>
+      </ul>
+    </div>
+  </div>
+  <p class="footer-bottom">{{ site.footer or ("© " ~ year ~ " " ~ site.name) }}</p>
+</footer>

@@ -110,15 +110,19 @@ impl Settings {
 pub fn normalize_base_url(input: &str) -> Result<String, String> {
     let input = input.trim();
     if input.is_empty() {
-        return Err("Enter the address where your blog will be visible, such as https://example.com/blog.".into());
+        return Err(
+            "Enter the address where your blog will be visible, such as https://example.com/blog."
+                .into(),
+        );
     }
     let with_scheme = if input.contains("://") {
         input.to_string()
     } else {
         format!("https://{input}")
     };
-    let url = url::Url::parse(&with_scheme)
-        .map_err(|_| format!("“{input}” isn't a valid web address. Use a form like https://example.com/blog."))?;
+    let url = url::Url::parse(&with_scheme).map_err(|_| {
+        format!("“{input}” isn't a valid web address. Use a form like https://example.com/blog.")
+    })?;
     if url.scheme() != "http" && url.scheme() != "https" {
         return Err("The address must start with http:// or https://.".into());
     }
@@ -129,7 +133,10 @@ pub fn normalize_base_url(input: &str) -> Result<String, String> {
         return Err("The address can't contain “?” or “#”. Use only the domain and an optional path like /blog.".into());
     }
     let path = url.path().trim_end_matches('/');
-    if path.split('/').any(|seg| seg == "admin" || seg == "static" || seg == "media") {
+    if path
+        .split('/')
+        .any(|seg| seg == "admin" || seg == "static" || seg == "media")
+    {
         return Err("The path can't include “admin”, “static” or “media”; those names are used by the blog itself.".into());
     }
     Ok(format!("{}{}", url.origin().ascii_serialization(), path))
@@ -141,9 +148,18 @@ mod tests {
 
     #[test]
     fn normalizes_urls() {
-        assert_eq!(normalize_base_url("example.com/blog/").unwrap(), "https://example.com/blog");
-        assert_eq!(normalize_base_url("http://localhost:3000").unwrap(), "http://localhost:3000");
-        assert_eq!(normalize_base_url("https://Blog.Example.com/").unwrap(), "https://blog.example.com");
+        assert_eq!(
+            normalize_base_url("example.com/blog/").unwrap(),
+            "https://example.com/blog"
+        );
+        assert_eq!(
+            normalize_base_url("http://localhost:3000").unwrap(),
+            "http://localhost:3000"
+        );
+        assert_eq!(
+            normalize_base_url("https://Blog.Example.com/").unwrap(),
+            "https://blog.example.com"
+        );
         assert!(normalize_base_url("ftp://example.com").is_err());
         assert!(normalize_base_url("https://example.com/blog?x=1").is_err());
         assert!(normalize_base_url("").is_err());

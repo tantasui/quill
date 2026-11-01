@@ -1,17 +1,17 @@
-{% extends layout %}
+{% extends "public/base.html" %}
 {% import "public/_macros.html" as m %}
 {% block content %}
-<article class="article">
+<article class="article article-{{ layout.article.measure }}">
   <header class="article-header">
     {% if article.tags %}
     <p class="article-kicker">{% for t in article.tags %}<a href="{{ t.url }}">{{ t.name }}</a>{% if not loop.last %}<span aria-hidden="true"> · </span>{% endif %}{% endfor %}</p>
     {% endif %}
     <h1 class="article-title">{{ article.title }}</h1>
     {% if article.has_excerpt %}<p class="article-dek">{{ article.excerpt }}</p>{% endif %}
-    {{ m.meta(article, show_author=true) }}
+    {{ m.meta(article, show_author=layout.article.show_author, show_date=layout.article.show_date, show_reading=layout.article.show_reading_time) }}
   </header>
-  {% if article.cover_image %}
-  <figure class="article-cover"><img src="{{ article.cover_image }}" alt=""></figure>
+  {% if article.cover_image and layout.article.cover != "none" %}
+  <figure class="article-cover{% if layout.article.cover == "hero" %} is-hero{% endif %}"><img src="{{ article.cover_image }}" alt=""></figure>
   {% endif %}
   <div class="prose article-body">
     {{ article.html|safe }}

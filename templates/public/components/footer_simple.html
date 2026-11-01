@@ -1,0 +1,4 @@
+<footer class="site-footer">
+  {% if layout.footer.show_title %}<a class="footer-title" href="{{ base }}/">{{ site.name }}</a>{% endif %}
+  <p>{{ site.footer or ("© " ~ year ~ " " ~ site.name) }}{% if layout.footer.show_feed %} · <a href="{{ feed_url }}">{{ layout.labels.feed }}</a>{% endif %}</p>
+</footer>

@@ -1,8 +1,10 @@
 # 001: rustfmt width
 
+**Status:** the first choice, `max_width = 160`, was reversed the same day in favor of rustfmt's default of 100.
+
 ## Context
 
-The 0.1 code was written to a wide line length by hand and never run through rustfmt, so `cargo fmt --check` failed. CI needs that check to pass, and the goal was the setting that disturbs the existing code least.
+The 0.1 code was written to a wide line length by hand and never run through rustfmt, so `cargo fmt --check` failed. CI needs that check to pass.
 
 ## Options
 
@@ -18,14 +20,22 @@ Lines added plus removed by `cargo fmt`, measured on the 0.1 code:
 | 170 | 508 | 619 |
 | 200 | 540 | 629 |
 
-No value passes with zero changes. The code was never consistent with any single rustfmt configuration, so some diff is unavoidable.
+No value passes with zero changes, because the code was never consistent with any single rustfmt configuration.
 
 ## Choice
 
-`max_width = 160` with default heuristics. Values from 156 to 164 tie on diff size, and 160 is the round number in that range.
+**The default width of 100, with no `rustfmt.toml`.**
+
+The first attempt optimized for the smallest diff and chose 160. That was the wrong thing to optimize:
+
+- The diff size only matters once, in one commit, and `.git-blame-ignore-revs` removes its main cost by letting `git blame` skip that commit. The line width affects every read of the code afterwards.
+- 100 is what Rust developers expect. This code is public and meant to be read, and it now looks like other Rust projects with no explanation needed.
+- 160 columns doesn't fit two files side by side on a laptop screen, and it collapsed readable method chains onto one line.
+- The switch was cheapest now, before Milestones 1 to 4 add more code.
 
 ## Trade-offs
 
-- **Very wide lines.** 160 columns is well past the Rust norm of 100 and won't fit side by side on a laptop screen. It was chosen to keep the formatting commit small, not because it reads best.
-- **Long chains collapse.** rustfmt scales its other limits with `max_width`, so some method chains that used to span several lines now sit on one.
-- **Reversible.** Moving to the default later is one config change and one mechanical commit of about 1,600 lines. If the project gets outside contributors, the default is worth reconsidering, since it is what Rust developers expect.
+- **More vertical space.** Some signatures and calls now span several lines.
+- **A large formatting commit.** It touches 22 Rust files, with about 1,200 lines added and 300 removed, and contains nothing else.
+- **The blame-ignore entry depends on that commit's hash.** Rebasing or squash-merging `quill-0.2` would change the hash and leave the entry pointing at nothing. Merge this branch with a merge commit, or update the file after merging.
+- **Earlier formatting is still in blame.** The first formatting commit (`de91073`) isn't listed, because it also adds files. Blame for some lines stops there rather than at the original code.

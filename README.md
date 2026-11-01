@@ -22,14 +22,14 @@ Quill is for people who already have a website and want a blog on it, written fr
 
 | | Quill | [Ghost](https://ghost.org) | [WriteFreely](https://writefreely.org) | [Zola](https://www.getzola.org) |
 |---|---|---|---|---|
-| **What it is** | Self-hosted blog with a dashboard | Full publishing platform | Minimalist, federated blogging | Static site generator |
-| **What you run** | One binary | Node.js and MySQL | One binary | Nothing at runtime; any static host works |
-| **Storage** | SQLite | MySQL in production | SQLite or MySQL | Files in your repository |
-| **Where you write** | Browser (Markdown) | Browser (rich editor) | Browser (Markdown) | Your text editor, then build and deploy |
+| **What it is** | Self-hosted blog with a dashboard | Publishing platform with memberships and newsletters | Distraction-free writing with federation | Static site generator |
+| **What you run** | One binary | [Node.js LTS, MySQL 8 and nginx on Ubuntu](https://docs.ghost.org/faq/supported-databases) | [One binary](https://writefreely.org/start) | [Nothing at runtime](https://www.getzola.org/): it renders static files |
+| **Storage** | SQLite | [MySQL 8, the only supported production database](https://docs.ghost.org/faq/supported-databases) | [MySQL or SQLite](https://writefreely.org/docs/main/admin/config) | [Markdown files](https://www.getzola.org/documentation/getting-started/overview/) |
+| **Where you write** | Browser (Markdown) | Browser | [Browser](https://writefreely.org/) | Your text editor, then build and deploy |
 
-- **Choose Ghost** if you want memberships, paid subscriptions, newsletters and a large theme ecosystem. Quill has none of these. Ghost also asks more of your server, and has a hosted option if you'd rather not run one at all.
-- **Choose WriteFreely** if you want a focused writing space with ActivityPub federation or several blogs and authors on one instance. Quill doesn't federate and has a single administrator.
-- **Choose Zola** if you're happy writing in files and deploying from a terminal. With no server process or database, a static site is cheaper to host and has less to secure than Quill will ever have.
+- **Choose Ghost** if you want [memberships, paid subscriptions, newsletters and a theme marketplace](https://ghost.org/pricing/). Quill has none of these. Ghost also asks more of your server, and [Ghost(Pro)](https://ghost.org/pricing/) hosts it for you if you'd rather not run one at all.
+- **Choose WriteFreely** if you want [ActivityPub federation or a community of writers](https://writefreely.org/) on one instance. Quill doesn't federate and has a single administrator.
+- **Choose Zola** if you're happy writing in files and deploying from a terminal. With [no server or database to manage](https://www.getzola.org/), a static site has less to look after and less to secure than Quill will ever have.
 - **Choose Quill** if you want a dashboard and your blog at `example.com/blog` on the site you already run, without operating a database server or a build pipeline.
 
 ## Quick start

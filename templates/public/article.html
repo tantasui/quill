@@ -1,0 +1,31 @@
+{% extends layout %}
+{% import "public/_macros.html" as m %}
+{% block content %}
+<article class="article">
+  <header class="article-header">
+    {% if article.tags %}
+    <p class="article-kicker">{% for t in article.tags %}<a href="{{ t.url }}">{{ t.name }}</a>{% if not loop.last %}<span aria-hidden="true"> · </span>{% endif %}{% endfor %}</p>
+    {% endif %}
+    <h1 class="article-title">{{ article.title }}</h1>
+    {% if article.has_excerpt %}<p class="article-dek">{{ article.excerpt }}</p>{% endif %}
+    {{ m.meta(article, show_author=true) }}
+  </header>
+  {% if article.cover_image %}
+  <figure class="article-cover"><img src="{{ article.cover_image }}" alt=""></figure>
+  {% endif %}
+  <div class="prose article-body">
+    {{ article.html|safe }}
+  </div>
+  {% if article.tags %}
+  <footer class="article-footer">
+    {{ m.tag_list(article.tags) }}
+  </footer>
+  {% endif %}
+</article>
+{% if older or newer %}
+<nav class="article-nav" aria-label="More articles">
+  {% if newer %}<a class="article-nav-newer" href="{{ newer.url }}" rel="prev"><span class="article-nav-label">Newer</span><span class="article-nav-title">{{ newer.title }}</span></a>{% else %}<span></span>{% endif %}
+  {% if older %}<a class="article-nav-older" href="{{ older.url }}" rel="next"><span class="article-nav-label">Older</span><span class="article-nav-title">{{ older.title }}</span></a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

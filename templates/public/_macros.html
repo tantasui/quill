@@ -1,0 +1,43 @@
+{# Shared building blocks for public templates. Themes may use or ignore them. #}
+
+{% macro meta(a, show_author=false) %}
+<p class="post-meta">
+  <time datetime="{{ a.date_iso }}">{{ a.date }}</time>
+  <span class="sep" aria-hidden="true">·</span>
+  <span>{{ a.reading_minutes }} min read</span>
+  {% if show_author and a.author %}<span class="sep" aria-hidden="true">·</span> <span class="post-author">{{ a.author }}</span>{% endif %}
+</p>
+{% endmacro %}
+
+{% macro tag_list(tags, label="Tags") %}
+{% if tags %}
+<ul class="tag-list" aria-label="{{ label }}">
+  {% for t in tags %}<li><a class="tag" href="{{ t.url }}">{{ t.name }}</a></li>{% endfor %}
+</ul>
+{% endif %}
+{% endmacro %}
+
+{% macro post_list(articles) %}
+<ol class="post-list">
+  {% for a in articles %}
+  <li class="post-item">
+    <article>
+      {% if a.cover_image %}<a class="post-cover" href="{{ a.url }}" tabindex="-1" aria-hidden="true"><img src="{{ a.cover_image }}" alt="" loading="lazy"></a>{% endif %}
+      <h2 class="post-title"><a href="{{ a.url }}">{{ a.title }}</a></h2>
+      {{ meta(a) }}
+      {% if a.excerpt %}<p class="post-excerpt">{{ a.excerpt }}</p>{% endif %}
+    </article>
+  </li>
+  {% endfor %}
+</ol>
+{% endmacro %}
+
+{% macro pagination(p) %}
+{% if p and p.total > 1 %}
+<nav class="pagination" aria-label="Pages">
+  {% if p.newer_url %}<a class="pagination-newer" href="{{ p.newer_url }}" rel="prev">← Newer</a>{% else %}<span></span>{% endif %}
+  <span class="pagination-count">Page {{ p.current }} of {{ p.total }}</span>
+  {% if p.older_url %}<a class="pagination-older" href="{{ p.older_url }}" rel="next">Older →</a>{% else %}<span></span>{% endif %}
+</nav>
+{% endif %}
+{% endmacro %}

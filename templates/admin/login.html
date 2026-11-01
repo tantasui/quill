@@ -1,0 +1,21 @@
+{% extends "admin/base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block auth %}
+<div class="auth-card">
+  <h1>Sign in</h1>
+  <p class="lead">to manage {{ site.name }}</p>
+  {% if error %}<div class="alert alert-error" role="alert">{{ error }}</div>{% endif %}
+  <form method="post" action="{{ base }}/admin/login" class="stack">
+    <div class="field">
+      <label for="username">Username</label>
+      <input id="username" name="username" value="{{ username }}" required autocomplete="username" autocapitalize="none" spellcheck="false" autofocus>
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" required autocomplete="current-password">
+    </div>
+    <button type="submit" class="btn btn-primary btn-block">Sign in</button>
+  </form>
+  <p class="help center">Forgot your password? Run <code>quill reset-password</code> on the server.</p>
+</div>
+{% endblock %}

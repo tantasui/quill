@@ -1,0 +1,61 @@
+{% extends "admin/base.html" %}
+{% block title %}Connect your site{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Connect your site</h1>
+</div>
+<p class="lead">Quill runs as its own small server at <code>{{ upstream }}</code>. To show it at <strong>{{ site.url }}</strong>, tell the web server that already runs your site to forward {% if is_subpath %}<code>{{ path }}</code>{% else %}<code>{{ host }}</code>{% endif %} to it. Copy the snippet for your web server below.</p>
+
+{% if origin_warning %}
+<div class="alert alert-info">{{ origin_warning }}</div>
+{% else %}
+<div class="alert alert-success">This page was loaded through <strong>{{ seen_origin }}</strong>, which matches your public address. Your site is connected.</div>
+{% endif %}
+
+<section class="card">
+  <h2>nginx</h2>
+  <p class="help">Add inside the <code>server {…}</code> block for {{ host }}{% if not is_subpath %} (create one if this is a new subdomain){% endif %}, then run <code>sudo nginx -t &amp;&amp; sudo systemctl reload nginx</code>.</p>
+  <div class="code-block"><button type="button" class="btn btn-small copy" data-copy="#nginx">Copy</button><pre id="nginx"><code>{% if is_subpath %}location {{ path }}/ {
+    proxy_pass http://{{ upstream }};
+{% else %}location / {
+    proxy_pass http://{{ upstream }};
+{% endif %}
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    client_max_body_size 12m;
+}</code></pre></div>
+</section>
+
+<section class="card">
+  <h2>Caddy</h2>
+  <p class="help">Add to your Caddyfile, then run <code>caddy reload</code>. Caddy obtains HTTPS certificates automatically.</p>
+  <div class="code-block"><button type="button" class="btn btn-small copy" data-copy="#caddy">Copy</button><pre id="caddy"><code>{% if is_subpath %}{{ host }} {
+    # …your existing site configuration…
+    handle {{ path }}* {
+        reverse_proxy {{ upstream }}
+    }
+}{% else %}{{ host }} {
+    reverse_proxy {{ upstream }}
+}{% endif %}</code></pre></div>
+</section>
+
+<section class="card">
+  <h2>Apache</h2>
+  <p class="help">Requires <code>mod_proxy</code>, <code>mod_proxy_http</code> and <code>mod_headers</code> (<code>sudo a2enmod proxy proxy_http headers</code>). Add inside the <code>&lt;VirtualHost&gt;</code> for {{ host }}.</p>
+  <div class="code-block"><button type="button" class="btn btn-small copy" data-copy="#apache">Copy</button><pre id="apache"><code>ProxyPreserveHost On
+RequestHeader set X-Forwarded-Proto "https" env=HTTPS
+ProxyPass {{ path or "/" }} http://{{ upstream }}{{ path or "/" }}
+ProxyPassReverse {{ path or "/" }} http://{{ upstream }}{{ path or "/" }}</code></pre></div>
+</section>
+
+<section class="card">
+  <h2>Checklist</h2>
+  <ul class="plain-list">
+    <li><strong>Public address:</strong> {{ site.url }} — change it in <a href="{{ base }}/admin/settings">Settings</a> if it's wrong.</li>
+    <li><strong>HTTPS:</strong> {% if https_seen %}your proxy reports HTTPS. Sign-in cookies are marked secure.{% else %}this page didn't arrive over HTTPS via a proxy. Once your site is connected, make sure the proxy sends <code>X-Forwarded-Proto</code> (included in the snippets above).{% endif %}</li>
+    <li><strong>Port:</strong> keep Quill listening on <code>127.0.0.1</code> so it's only reachable through your web server. Docker users map the port with <code>-p 127.0.0.1:3000:3000</code>.</li>
+    <li><strong>Check:</strong> open <a href="{{ site.url }}/" target="_blank" rel="noopener">{{ site.url }}/</a>. If you see your blog, you're done. A 502 error means the web server can't reach Quill: check that it's running and that the address above matches.</li>
+  </ul>
+</section>
+{% endblock %}

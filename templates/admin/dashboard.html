@@ -1,0 +1,63 @@
+{% extends "admin/base.html" %}
+{% block title %}Overview{% endblock %}
+{% block content %}
+{% macro article_list(items, empty) %}
+{% if items %}
+<ul class="item-list">
+  {% for a in items %}
+  <li>
+    <a href="{{ a.edit_url }}" class="item-title">{{ a.title }}</a>
+    <span class="item-meta">{{ a.date }}</span>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="muted">{{ empty }}</p>
+{% endif %}
+{% endmacro %}
+<div class="page-head">
+  <h1>Overview</h1>
+</div>
+
+{% if origin_warning %}<div class="alert alert-info">{{ origin_warning }}</div>{% endif %}
+
+<div class="stats">
+  <a class="stat" href="{{ base }}/admin/articles?status=published"><span class="stat-value">{{ counts.published }}</span><span class="stat-label">Published</span></a>
+  <a class="stat" href="{{ base }}/admin/articles?status=draft"><span class="stat-value">{{ counts.drafts }}</span><span class="stat-label">Drafts</span></a>
+  <a class="stat" href="{{ base }}/admin/articles?status=scheduled"><span class="stat-value">{{ counts.scheduled }}</span><span class="stat-label">Scheduled</span></a>
+  <a class="stat" href="{{ base }}/admin/themes"><span class="stat-value stat-value-text">{{ theme_name }}</span><span class="stat-label">Theme</span></a>
+</div>
+
+{% set remaining = checklist|rejectattr("done")|list %}
+{% if remaining %}
+<section class="card">
+  <h2>Getting started</h2>
+  <ol class="checklist">
+    {% for item in checklist %}
+    <li class="{{ 'done' if item.done else '' }}">
+      <span class="check" aria-hidden="true">{{ "✓" if item.done else loop.index }}</span>
+      {% if item.url and not item.done %}<a href="{{ item.url }}">{{ item.label }}</a>{% else %}{{ item.label }}{% endif %}
+      {% if item.done %}<span class="visually-hidden">(done)</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+</section>
+{% endif %}
+
+<div class="grid-2">
+  <section class="card">
+    <div class="card-head"><h2>Drafts</h2><a href="{{ base }}/admin/articles?status=draft">All drafts</a></div>
+    {{ article_list(drafts, "No drafts. Start one with New article.") }}
+  </section>
+  <section class="card">
+    <div class="card-head"><h2>Recently published</h2><a href="{{ base }}/admin/articles?status=published">All published</a></div>
+    {{ article_list(recent, "Nothing published yet.") }}
+  </section>
+  {% if scheduled %}
+  <section class="card">
+    <div class="card-head"><h2>Scheduled</h2></div>
+    {{ article_list(scheduled, "") }}
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends layout %}
+{% import "public/_macros.html" as m %}
+{% block content %}
+<header class="page-header">
+  <p class="page-kicker">Tag</p>
+  <h1 class="page-title">{{ tag.name }}</h1>
+  <p class="page-subtitle">{{ tag.count }} article{{ "" if tag.count == 1 else "s" }}</p>
+</header>
+{{ m.post_list(articles) }}
+{{ m.pagination(pagination) }}
+{% endblock %}

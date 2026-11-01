@@ -1,0 +1,45 @@
+{% extends "admin/base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Settings</h1>
+</div>
+<form method="post" action="{{ base }}/admin/settings" class="card stack form-narrow">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <div class="field">
+    <label for="site_name">Blog name</label>
+    <input id="site_name" name="site_name" value="{{ form.site_name }}" required maxlength="120">
+  </div>
+  <div class="field">
+    <label for="description">Description</label>
+    <textarea id="description" name="description" rows="2" maxlength="300" aria-describedby="description_help">{{ form.description }}</textarea>
+    <p class="help" id="description_help">A sentence about the blog. Shown by some themes and used by search engines for the home page.</p>
+  </div>
+  <div class="field">
+    <label for="base_url">Public address</label>
+    <input id="base_url" name="base_url" value="{{ form.base_url }}" required inputmode="url" spellcheck="false" aria-describedby="base_url_help">
+    <p class="help" id="base_url_help">The address readers use, such as <code>https://example.com/blog</code> or <code>https://blog.example.com</code>. Links, feeds and the sitemap are built from it. See <a href="{{ base }}/admin/integration">Connect your site</a> for the matching web-server settings.</p>
+  </div>
+  <div class="field">
+    <label for="author_name">Author name</label>
+    <input id="author_name" name="author_name" value="{{ form.author_name }}" maxlength="120" aria-describedby="author_help">
+    <p class="help" id="author_help">Shown on articles and in feeds. Leave empty to hide.</p>
+  </div>
+  <div class="field-row">
+    <div class="field">
+      <label for="posts_per_page">Articles per page</label>
+      <input id="posts_per_page" name="posts_per_page" type="number" min="1" max="50" value="{{ form.posts_per_page }}" required>
+    </div>
+    <div class="field">
+      <label for="language">Language code</label>
+      <input id="language" name="language" value="{{ form.language }}" required maxlength="12" spellcheck="false" aria-describedby="language_help">
+      <p class="help" id="language_help">For example en, fr or pt-BR. Helps screen readers and search engines.</p>
+    </div>
+  </div>
+  <div class="field">
+    <label for="footer_text">Footer text</label>
+    <input id="footer_text" name="footer_text" value="{{ form.footer_text }}" maxlength="300" placeholder="© {{ site.name }}">
+  </div>
+  <div><button type="submit" class="btn btn-primary">Save settings</button></div>
+</form>
+{% endblock %}

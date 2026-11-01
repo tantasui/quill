@@ -1,0 +1,14 @@
+# Example Caddy configuration. Caddy provisions HTTPS certificates automatically.
+
+# Option A: a folder on an existing site.
+example.com {
+    # …your existing site configuration…
+    handle /blog* {
+        reverse_proxy 127.0.0.1:3000
+    }
+}
+
+# Option B: a subdomain.
+# blog.example.com {
+#     reverse_proxy 127.0.0.1:3000
+# }

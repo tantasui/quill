@@ -1,0 +1,40 @@
+{% extends "admin/base.html" %}
+{% block title %}Media{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Media</h1>
+</div>
+
+<form method="post" action="{{ base }}/admin/media" enctype="multipart/form-data" class="dropzone" id="media-upload">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <label for="file" class="dropzone-label">
+    <strong>Choose an image</strong> or drop it here
+    <span class="help">PNG, JPEG, GIF, WebP or AVIF, up to {{ max_mb }} MB</span>
+  </label>
+  <input type="file" id="file" name="file" accept="image/png,image/jpeg,image/gif,image/webp,image/avif" required>
+  <button type="submit" class="btn btn-primary">Upload</button>
+</form>
+
+{% if files %}
+<ul class="media-grid">
+  {% for f in files %}
+  <li class="media-item">
+    <a href="{{ f.url }}" target="_blank" rel="noopener" class="media-thumb"><img src="{{ f.url }}" alt="{{ f.name }}" loading="lazy"></a>
+    <div class="media-info">
+      <span class="media-name" title="{{ f.name }}">{{ f.name }}</span>
+      <span class="item-meta">{{ f.size|filesize }} · {{ f.date }}{% if f.in_use %} · <span class="in-use">In use</span>{% endif %}</span>
+      <div class="media-actions">
+        <button type="button" class="btn btn-small" data-copy-text="![]({{ f.reference }})">Copy Markdown</button>
+        <form method="post" action="{{ base }}/admin/media/{{ f.id }}/delete">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          <button type="submit" class="btn btn-small btn-quiet" data-confirm="{{ 'This image is used in an article. Delete it anyway? The article will show a broken image.' if f.in_use else 'Delete this image?' }}">Delete</button>
+        </form>
+      </div>
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="muted">No uploads yet. Images you add in the editor also appear here.</p>
+{% endif %}
+{% endblock %}

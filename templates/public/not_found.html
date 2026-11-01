@@ -1,0 +1,17 @@
+{% extends layout %}
+{% block content %}
+<header class="page-header">
+  <p class="page-kicker">404</p>
+  <h1 class="page-title">This page doesn't exist</h1>
+  <p class="page-subtitle">It may have moved, or the link may be mistyped.</p>
+</header>
+<p><a href="{{ base }}/">Go to the home page</a> or browse the <a href="{{ base }}/archive">archive</a>.</p>
+{% if recent %}
+<section class="recent">
+  <h2>Recent articles</h2>
+  <ul class="archive-list">
+    {% for a in recent %}<li><time datetime="{{ a.date_iso }}">{{ a.date_short }}</time> <a href="{{ a.url }}">{{ a.title }}</a></li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

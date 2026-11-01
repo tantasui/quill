@@ -1,0 +1,134 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ form.title or "New article" }}{% endblock %}
+{% block body_class %}editor-page{% endblock %}
+{% block head %}<script src="{{ base }}/static/admin/editor.js?v={{ version }}" defer></script>{% endblock %}
+{% block content %}
+<form method="post" action="{{ form_action }}" class="editor" id="editor-form"
+      data-preview-url="{{ base }}/admin/preview" data-upload-url="{{ base }}/admin/media" data-csrf="{{ csrf }}">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <input type="hidden" name="tz_offset" value="{{ form.tz_offset or '0' }}" id="tz_offset">
+
+  <div class="editor-main">
+    <div class="editor-crumbs">
+      <a href="{{ base }}/admin/articles">← Articles</a>
+      {% if article %}<span class="badge badge-{{ article.state }}">{{ article.state|capitalize }}</span>{% endif %}
+      <span class="save-state" id="save-state" aria-live="polite"></span>
+    </div>
+
+    <label for="title" class="visually-hidden">Title</label>
+    <textarea id="title" name="title" class="title-input" rows="1" placeholder="Article title" required maxlength="200" autocomplete="off" spellcheck="true"{% if not article %} autofocus{% endif %}>{{ form.title }}</textarea>
+
+    <div class="writer">
+      <div class="writer-bar" role="toolbar" aria-label="Formatting" aria-controls="content">
+        <div class="writer-tools">
+          <button type="button" data-md="heading" title="Heading">H</button>
+          <button type="button" data-md="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+          <button type="button" data-md="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+          <button type="button" data-md="link" title="Link (Ctrl+K)">Link</button>
+          <button type="button" data-md="quote" title="Quote">“ ”</button>
+          <button type="button" data-md="ul" title="Bulleted list">• List</button>
+          <button type="button" data-md="ol" title="Numbered list">1. List</button>
+          <button type="button" data-md="code" title="Code">&lt;/&gt;</button>
+          <button type="button" data-md="image" title="Insert image">Image</button>
+          <input type="file" id="image-file" accept="image/png,image/jpeg,image/gif,image/webp,image/avif" hidden>
+        </div>
+        <div class="writer-modes" role="tablist" aria-label="View">
+          <button type="button" role="tab" data-mode="write" aria-selected="true">Write</button>
+          <button type="button" role="tab" data-mode="split" aria-selected="false" class="hide-sm">Side by side</button>
+          <button type="button" role="tab" data-mode="preview" aria-selected="false">Preview</button>
+        </div>
+      </div>
+      <div class="writer-panes" data-mode="write">
+        <label for="content" class="visually-hidden">Article text</label>
+        <textarea id="content" name="content" class="writer-text" spellcheck="true" placeholder="Start writing… Use the toolbar for formatting, or type Markdown: # Heading, **bold**, *italic*, [link](https://…)">{{ form.content }}</textarea>
+        <div class="writer-preview prose" id="preview" aria-live="polite" tabindex="0" aria-label="Preview"></div>
+      </div>
+      <p class="help writer-help">Drop or paste images straight into the text. <kbd>Ctrl</kbd>+<kbd>S</kbd> saves.</p>
+    </div>
+  </div>
+
+  <aside class="editor-side">
+    <section class="panel">
+      <h2>{{ "Publish" if not article or article.state == "draft" else "Update" }}</h2>
+      {% if article %}<p class="help">Last saved {{ article.updated }}.{% if article.public_url %} <a href="{{ article.public_url }}" target="_blank" rel="noopener">View live article ↗</a>{% endif %}</p>{% endif %}
+      <div class="field">
+        <label for="published_at">Publication date</label>
+        <input type="datetime-local" id="published_at" name="published_at" value="{{ form.published_at }}" data-utc="{{ form.published_at }}" aria-describedby="published_at_help">
+        <p class="help" id="published_at_help">Leave empty to use the moment you publish. A future date schedules the article.</p>
+      </div>
+      <div class="button-stack">
+        {% if not article or article.state == "draft" %}
+        <button type="submit" name="action" value="publish" class="btn btn-primary btn-block">Publish</button>
+        <button type="submit" name="action" value="draft" class="btn btn-block" data-shortcut-save>Save draft</button>
+        {% else %}
+        <button type="submit" name="action" value="publish" class="btn btn-primary btn-block" data-shortcut-save>Update</button>
+        <button type="submit" name="action" value="draft" class="btn btn-block">Move to drafts</button>
+        {% endif %}
+        <button type="submit" formaction="{{ base }}/admin/articles/preview" formtarget="_blank" formnovalidate class="btn btn-block btn-quiet" data-no-dirty-reset>Preview in theme ↗</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Organize</h2>
+      <div class="field">
+        <label for="tags">Tags</label>
+        <input id="tags" name="tags" value="{{ form.tags }}" placeholder="news, tutorials" autocomplete="off" aria-describedby="tags_help">
+        <p class="help" id="tags_help">Separate with commas.</p>
+      </div>
+      <div class="field">
+        <label for="slug">URL</label>
+        <div class="input-prefix"><span class="prefix" title="{{ slug_prefix }}">…/posts/</span><input id="slug" name="slug" value="{{ form.slug }}" placeholder="from-the-title" spellcheck="false" autocomplete="off" aria-describedby="slug_help"></div>
+        <p class="help" id="slug_help">Leave empty to create one from the title. Changing it on a published article keeps the old link working.</p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Cover image</h2>
+      <div class="cover-field">
+        <img id="cover-preview" class="cover-preview" alt="" src="{{ form.cover_preview }}"{% if not form.cover_image %} hidden{% endif %}>
+        <label for="cover_image" class="visually-hidden">Cover image address</label>
+        <input id="cover_image" name="cover_image" value="{{ form.cover_image }}" placeholder="Upload or paste an image address" spellcheck="false" data-base="{{ base }}">
+        <div class="cover-actions">
+          <button type="button" class="btn btn-small" id="cover-upload">Upload…</button>
+          <button type="button" class="btn btn-small btn-quiet" id="cover-clear"{% if not form.cover_image %} hidden{% endif %}>Remove</button>
+          <input type="file" id="cover-file" accept="image/png,image/jpeg,image/gif,image/webp,image/avif" hidden>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Summary</h2>
+      <div class="field">
+        <label for="excerpt">Excerpt</label>
+        <textarea id="excerpt" name="excerpt" rows="3" maxlength="500" aria-describedby="excerpt_help">{{ form.excerpt }}</textarea>
+        <p class="help" id="excerpt_help">Shown on the home page and in feeds. Leave empty to use the opening lines.</p>
+      </div>
+    </section>
+
+    <details class="panel"{% if form.meta_title or form.meta_description %} open{% endif %}>
+      <summary><h2>Search &amp; sharing</h2></summary>
+      <div class="field">
+        <label for="meta_title">Search title</label>
+        <input id="meta_title" name="meta_title" value="{{ form.meta_title }}" maxlength="120" data-count="60" placeholder="Defaults to the article title">
+      </div>
+      <div class="field">
+        <label for="meta_description">Search description</label>
+        <textarea id="meta_description" name="meta_description" rows="3" maxlength="300" data-count="160" placeholder="Defaults to the excerpt">{{ form.meta_description }}</textarea>
+      </div>
+    </details>
+
+    {% if article %}
+    <section class="panel panel-danger">
+      <h2>Delete</h2>
+      <p class="help">Deleting removes the article permanently. Moving it to drafts hides it instead.</p>
+      <button type="submit" form="delete-form" class="btn btn-danger btn-block" data-confirm="Delete “{{ form.title }}” permanently? This can't be undone.">Delete article</button>
+    </section>
+    {% endif %}
+  </aside>
+</form>
+{% if article %}
+<form method="post" action="{{ base }}/admin/articles/{{ article.id }}/delete" id="delete-form">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+</form>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "admin/base.html" %}
+{% block title %}Articles{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Articles</h1>
+  <a class="btn btn-primary" href="{{ base }}/admin/articles/new">New article</a>
+</div>
+
+<nav class="tabs" aria-label="Filter articles">
+  {% set total = counts.published + counts.drafts + counts.scheduled %}
+  {% for key, label, n in [("all", "All", total), ("published", "Published", counts.published), ("draft", "Drafts", counts.drafts), ("scheduled", "Scheduled", counts.scheduled)] %}
+  <a href="{{ base }}/admin/articles{% if key != 'all' %}?status={{ key }}{% endif %}"{% if filter == key %} aria-current="page"{% endif %}>{{ label }} <span class="count">{{ n }}</span></a>
+  {% endfor %}
+</nav>
+
+{% if articles %}
+<div class="table-wrap">
+<table class="table">
+  <thead><tr><th scope="col">Title</th><th scope="col">Status</th><th scope="col" class="hide-sm">Tags</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+  <tbody>
+  {% for a in articles %}
+  <tr>
+    <td><a href="{{ a.edit_url }}" class="item-title">{{ a.title }}</a><span class="item-meta">{{ a.date }}</span></td>
+    <td><span class="badge badge-{{ a.state }}">{{ a.state|capitalize }}</span></td>
+    <td class="hide-sm">{% for t in a.tags %}<span class="chip">{{ t }}</span>{% endfor %}</td>
+    <td class="actions">
+      <a href="{{ a.edit_url }}">Edit</a>
+      {% if a.public_url %}<a href="{{ a.public_url }}" target="_blank" rel="noopener">View<span class="visually-hidden"> {{ a.title }} (opens in a new tab)</span></a>{% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="empty-state">
+  {% if filter == "all" %}
+  <h2>No articles yet</h2>
+  <p>Your first article is a click away.</p>
+  <a class="btn btn-primary" href="{{ base }}/admin/articles/new">Write an article</a>
+  {% else %}
+  <p>No {{ "drafts" if filter == "draft" else filter }} articles.</p>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

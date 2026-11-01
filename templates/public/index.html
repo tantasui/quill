@@ -1,0 +1,12 @@
+{% extends layout %}
+{% import "public/_macros.html" as m %}
+{% block content %}
+{% if articles %}
+{{ m.post_list(articles) }}
+{{ m.pagination(pagination) }}
+{% else %}
+<div class="empty">
+  <p>Nothing has been published here yet. Check back soon.</p>
+</div>
+{% endif %}
+{% endblock %}

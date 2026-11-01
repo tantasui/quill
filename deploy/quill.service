@@ -1,0 +1,35 @@
+# systemd unit for running Quill as a native binary.
+#   sudo useradd --system --home-dir /var/lib/quill --shell /usr/sbin/nologin quill
+#   sudo install -m 755 quill /usr/local/bin/quill
+#   sudo cp quill.service /etc/systemd/system/ && sudo systemctl daemon-reload
+#   sudo systemctl enable --now quill
+#   sudo journalctl -u quill        # shows the setup code on first start
+[Unit]
+Description=Quill blog
+After=network.target
+
+[Service]
+User=quill
+Group=quill
+StateDirectory=quill
+Environment=QUILL_DATA_DIR=/var/lib/quill
+Environment=QUILL_LISTEN=127.0.0.1:3000
+ExecStart=/usr/local/bin/quill serve
+Restart=on-failure
+RestartSec=2
+
+# Hardening: Quill only needs its data directory and the network.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/var/lib/quill
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,35 @@
+{% extends layout %}
+{% import "public/_macros.html" as m %}
+{% block content %}
+{% if articles %}
+{% set lead = articles[0] %}
+{% set rest = articles[1:] if pagination.current == 1 else articles %}
+{% if pagination.current == 1 %}
+<article class="lead-story{% if lead.cover_image %} has-cover{% endif %}">
+  {% if lead.cover_image %}<a class="lead-cover" href="{{ lead.url }}" tabindex="-1" aria-hidden="true"><img src="{{ lead.cover_image }}" alt=""></a>{% endif %}
+  <div class="lead-text">
+    {% if lead.tags %}<p class="kicker">{{ lead.tags[0].name }}</p>{% endif %}
+    <h2 class="lead-title"><a href="{{ lead.url }}">{{ lead.title }}</a></h2>
+    {% if lead.excerpt %}<p class="lead-excerpt">{{ lead.excerpt }}</p>{% endif %}
+    {{ m.meta(lead, show_author=true) }}
+  </div>
+</article>
+{% endif %}
+{% if rest %}
+<div class="story-grid">
+  {% for a in rest %}
+  <article class="story">
+    {% if a.cover_image %}<a class="story-cover" href="{{ a.url }}" tabindex="-1" aria-hidden="true"><img src="{{ a.cover_image }}" alt="" loading="lazy"></a>{% endif %}
+    {% if a.tags %}<p class="kicker">{{ a.tags[0].name }}</p>{% endif %}
+    <h2 class="story-title"><a href="{{ a.url }}">{{ a.title }}</a></h2>
+    {% if a.excerpt %}<p class="story-excerpt">{{ a.excerpt }}</p>{% endif %}
+    {{ m.meta(a) }}
+  </article>
+  {% endfor %}
+</div>
+{% endif %}
+{{ m.pagination(pagination) }}
+{% else %}
+<div class="empty"><p>The first edition is on its way. Check back soon.</p></div>
+{% endif %}
+{% endblock %}

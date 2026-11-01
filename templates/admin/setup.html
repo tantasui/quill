@@ -1,0 +1,75 @@
+{% extends "admin/base.html" %}
+{% block title %}Set up your blog{% endblock %}
+{% block body_class %}setup{% endblock %}
+{% block auth %}
+<div class="auth-card auth-card-wide">
+  <h1>Set up your blog</h1>
+  <p class="lead">A few details and you're ready to publish. Everything except the setup code can be changed later.</p>
+
+  {% if errors %}
+  <div class="alert alert-error" role="alert">
+    <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+
+  <form method="post" action="{{ base }}/admin/setup" class="stack">
+    <fieldset>
+      <legend><span class="step">1</span> Confirm it's you</legend>
+      <div class="field">
+        <label for="setup_code">Setup code</label>
+        <input id="setup_code" name="setup_code" value="{{ form.setup_code }}" required autocomplete="off" autocapitalize="characters" spellcheck="false" class="mono" placeholder="XXXX-XXXX" aria-describedby="setup_code_help">
+        <p class="help" id="setup_code_help">Printed by the server when it started. With Docker, run <code>docker logs &lt;container&gt;</code> to see it. This stops anyone else from claiming a fresh install.</p>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend><span class="step">2</span> Your blog</legend>
+      <div class="field">
+        <label for="site_name">Blog name</label>
+        <input id="site_name" name="site_name" value="{{ form.site_name }}" required maxlength="120">
+      </div>
+      <div class="field">
+        <label for="base_url">Public address</label>
+        <input id="base_url" name="base_url" value="{{ form.base_url }}" required inputmode="url" spellcheck="false" placeholder="https://example.com/blog" aria-describedby="base_url_help">
+        <p class="help" id="base_url_help">Where readers will find the blog: a folder on your site like <code>https://example.com/blog</code>, or a subdomain like <code>https://blog.example.com</code>. We've filled in the address you're using now; change it if your domain isn't connected yet. The <em>Connect your site</em> page then shows the exact web-server settings.</p>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend><span class="step">3</span> Administrator account</legend>
+      <div class="field">
+        <label for="username">Username</label>
+        <input id="username" name="username" value="{{ form.username }}" required maxlength="64" autocomplete="username" autocapitalize="none" spellcheck="false">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" required minlength="{{ min_password }}" autocomplete="new-password" aria-describedby="password_help">
+          <p class="help" id="password_help">At least {{ min_password }} characters.</p>
+        </div>
+        <div class="field">
+          <label for="password_confirm">Confirm password</label>
+          <input id="password_confirm" name="password_confirm" type="password" required minlength="{{ min_password }}" autocomplete="new-password">
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend><span class="step">4</span> Choose a look</legend>
+      <div class="theme-choices">
+        {% for t in themes %}
+        <label class="theme-choice">
+          <input type="radio" name="theme" value="{{ t.id }}"{% if t.id == form.theme %} checked{% endif %}>
+          <span class="theme-swatch theme-swatch-{{ t.id }}" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="theme-choice-name">{{ t.name }}</span>
+          <span class="theme-choice-desc">{{ t.description }}</span>
+        </label>
+        {% endfor %}
+      </div>
+      <p class="help">You can preview every theme and switch at any time without affecting your articles.</p>
+    </fieldset>
+
+    <button type="submit" class="btn btn-primary btn-large">Create my blog</button>
+  </form>
+</div>
+{% endblock %}

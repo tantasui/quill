@@ -1,0 +1,21 @@
+{% extends layout %}
+{% import "public/_macros.html" as m %}
+{% block content %}
+{% if articles %}
+<ol class="post-rows">
+  {% for a in articles %}
+  <li class="post-row">
+    <time class="post-row-date" datetime="{{ a.date_iso }}">{{ a.date_iso[:10] }}</time>
+    <div class="post-row-body">
+      <h2 class="post-title"><a href="{{ a.url }}">{{ a.title }}</a></h2>
+      {% if a.excerpt %}<p class="post-excerpt">{{ a.excerpt }}</p>{% endif %}
+      <p class="post-row-meta"><span>{{ a.reading_minutes }} min</span>{% for t in a.tags %} <a class="tag" href="{{ t.url }}">#{{ t.name }}</a>{% endfor %}</p>
+    </div>
+  </li>
+  {% endfor %}
+</ol>
+{{ m.pagination(pagination) }}
+{% else %}
+<div class="empty"><p><code>0 posts</code> — nothing published yet.</p></div>
+{% endif %}
+{% endblock %}

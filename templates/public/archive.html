@@ -1,0 +1,27 @@
+{% extends layout %}
+{% block content %}
+<header class="page-header">
+  <h1 class="page-title">Archive</h1>
+  <p class="page-subtitle">{{ total }} article{{ "" if total == 1 else "s" }}</p>
+</header>
+{% for group in years %}
+<section class="archive-year" aria-labelledby="year-{{ group.year }}">
+  <h2 id="year-{{ group.year }}">{{ group.year }}</h2>
+  <ul class="archive-list">
+    {% for a in group.articles %}
+    <li><time datetime="{{ a.date_iso }}">{{ a.date_short }}</time> <a href="{{ a.url }}">{{ a.title }}</a></li>
+    {% endfor %}
+  </ul>
+</section>
+{% else %}
+<p class="empty">Nothing has been published yet.</p>
+{% endfor %}
+{% if nav_tags %}
+<section class="archive-tags" aria-labelledby="tags-heading">
+  <h2 id="tags-heading">Tags</h2>
+  <ul class="tag-list">
+    {% for t in nav_tags %}<li><a class="tag" href="{{ t.url }}">{{ t.name }} <span class="tag-count">{{ t.count }}</span></a></li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

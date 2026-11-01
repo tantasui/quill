@@ -1,0 +1,19 @@
+# docker compose up -d
+# Then read the setup code with: docker compose logs quill
+services:
+  quill:
+    build: .
+    image: quill:latest
+    restart: unless-stopped
+    ports:
+      # Only reachable from this machine; your web server forwards traffic to it.
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - quill-data:/data
+    environment:
+      # Optional: pin the public address instead of setting it in the dashboard.
+      # QUILL_BASE_URL: https://example.com/blog
+      QUILL_LOG: info
+
+volumes:
+  quill-data:

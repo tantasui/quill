@@ -29,7 +29,7 @@ pub struct OriginalPath(pub String);
 
 pub fn app(state: AppState) -> Router {
     let admin = Router::new()
-        .route("/admin", get(admin::dashboard))
+        .route("/admin", get(admin::dashboard::dashboard))
         .route("/admin/setup", get(admin::setup_form).post(admin::setup_submit))
         .route("/admin/login", get(admin::login_form).post(admin::login_submit))
         .route("/admin/logout", post(admin::logout))

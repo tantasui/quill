@@ -1,4 +1,5 @@
 pub mod account;
+pub mod integration;
 pub mod media;
 
 use axum::extract::{Path, Query, State};
@@ -813,26 +814,6 @@ pub async fn settings_submit(State(state): State<AppState>, user: AdminUser, For
     s.footer_text = form.footer_text.trim().to_string();
     state.save_settings(s.clone()).await?;
     Ok(redirect(&s, "/admin/settings?notice=settings"))
-}
-
-// ---- Integration help ---------------------------------------------------------------------
-
-pub async fn integration(State(state): State<AppState>, user: AdminUser, headers: HeaderMap) -> AppResult<Response> {
-    let s = state.settings();
-    let upstream = state.listen.replace("0.0.0.0", "127.0.0.1").replace("[::]", "[::1]");
-    let host = url::Url::parse(&s.base_url)
-        .ok()
-        .and_then(|u| u.host_str().map(str::to_string))
-        .unwrap_or_default();
-    let mut ctx = admin_context(&s, Some(&user), "integration");
-    ctx.insert("upstream".into(), json!(upstream));
-    ctx.insert("host".into(), json!(host));
-    ctx.insert("path".into(), json!(s.base_path));
-    ctx.insert("is_subpath".into(), json!(!s.base_path.is_empty()));
-    ctx.insert("origin_warning".into(), json!(origin_warning(&headers, &s)));
-    ctx.insert("seen_origin".into(), json!(request_origin(&headers)));
-    ctx.insert("https_seen".into(), json!(auth::is_https(&headers)));
-    Ok(render(&state, "integration", &ctx)?.into_response())
 }
 
 #[cfg(test)]

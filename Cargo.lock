@@ -1552,6 +1552,7 @@ dependencies = [
  "mime_guess",
  "minijinja",
  "pulldown-cmark",
+ "quill-design",
  "rand",
  "rust-embed",
  "serde",
@@ -1567,6 +1568,10 @@ dependencies = [
  "tracing-subscriber",
  "url",
 ]
+
+[[package]]
+name = "quill-design"
+version = "0.1.0"
 
 [[package]]
 name = "quote"

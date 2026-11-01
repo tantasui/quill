@@ -1,0 +1,8 @@
+[package]
+name = "quill-design"
+version = "0.1.0"
+edition = "2021"
+description = "Quill's design model: typed design tokens, layouts and presets. No I/O and no web dependencies."
+license = "MIT"
+
+[dependencies]

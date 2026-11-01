@@ -5,7 +5,11 @@ edition = "2021"
 description = "A lightweight, self-hosted blogging engine you can drop onto an existing website."
 license = "MIT"
 
+[workspace]
+members = ["crates/quill-design"]
+
 [dependencies]
+quill-design = { path = "crates/quill-design" }
 anyhow = "1"
 argon2 = "0.5"
 axum = { version = "0.8", features = ["multipart"] }

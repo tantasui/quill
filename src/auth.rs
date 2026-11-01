@@ -1,7 +1,9 @@
 use std::time::{Duration, Instant};
 
 use anyhow::Result;
-use argon2::password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString};
+use argon2::password_hash::{
+    rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString,
+};
 use argon2::Argon2;
 use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
@@ -28,7 +30,11 @@ pub fn hash_password(password: &str) -> Result<String> {
 
 pub fn verify_password(password: &str, hash: &str) -> bool {
     PasswordHash::new(hash)
-        .map(|h| Argon2::default().verify_password(password.as_bytes(), &h).is_ok())
+        .map(|h| {
+            Argon2::default()
+                .verify_password(password.as_bytes(), &h)
+                .is_ok()
+        })
         .unwrap_or(false)
 }
 
@@ -47,7 +53,11 @@ fn hash_token(token: &str) -> String {
 }
 
 pub fn constant_time_eq(a: &str, b: &str) -> bool {
-    a.len() == b.len() && a.bytes().zip(b.bytes()).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+    a.len() == b.len()
+        && a.bytes()
+            .zip(b.bytes())
+            .fold(0u8, |acc, (x, y)| acc | (x ^ y))
+            == 0
 }
 
 /// A one-time code that must be entered to claim a fresh installation, so
@@ -56,12 +66,18 @@ pub fn generate_setup_code() -> String {
     const ALPHABET: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     let mut buf = [0u8; 8];
     rand::rngs::OsRng.fill_bytes(&mut buf);
-    let code: String = buf.iter().map(|b| ALPHABET[*b as usize % ALPHABET.len()] as char).collect();
+    let code: String = buf
+        .iter()
+        .map(|b| ALPHABET[*b as usize % ALPHABET.len()] as char)
+        .collect();
     format!("{}-{}", &code[..4], &code[4..])
 }
 
 pub fn normalize_setup_code(code: &str) -> String {
-    code.chars().filter(|c| c.is_ascii_alphanumeric()).map(|c| c.to_ascii_uppercase()).collect()
+    code.chars()
+        .filter(|c| c.is_ascii_alphanumeric())
+        .map(|c| c.to_ascii_uppercase())
+        .collect()
 }
 
 /// Creates a session and returns the raw token for the cookie. Only a hash of
@@ -69,7 +85,10 @@ pub fn normalize_setup_code(code: &str) -> String {
 pub async fn create_session(db: &SqlitePool, user_id: i64) -> Result<String> {
     let token = random_hex(32);
     let now = Utc::now();
-    sqlx::query("DELETE FROM sessions WHERE expires_at <= ?").bind(now).execute(db).await?;
+    sqlx::query("DELETE FROM sessions WHERE expires_at <= ?")
+        .bind(now)
+        .execute(db)
+        .await?;
     sqlx::query("INSERT INTO sessions (token_hash, user_id, csrf_token, created_at, expires_at) VALUES (?, ?, ?, ?, ?)")
         .bind(hash_token(&token))
         .bind(user_id)
@@ -105,7 +124,13 @@ pub fn is_https(headers: &HeaderMap) -> bool {
     let forwarded_proto = headers
         .get("x-forwarded-proto")
         .and_then(|v| v.to_str().ok())
-        .map(|v| v.split(',').next().unwrap_or("").trim().eq_ignore_ascii_case("https"));
+        .map(|v| {
+            v.split(',')
+                .next()
+                .unwrap_or("")
+                .trim()
+                .eq_ignore_ascii_case("https")
+        });
     let forwarded = headers
         .get(header::FORWARDED)
         .and_then(|v| v.to_str().ok())
@@ -152,13 +177,18 @@ impl AdminUser {
 impl FromRequestParts<AppState> for AdminUser {
     type Rejection = Response;
 
-    async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
         let base = state.settings().base_path;
         if state.needs_setup() {
             return Err(Redirect::to(&format!("{base}/admin/setup")).into_response());
         }
         let login = || Redirect::to(&format!("{base}/admin/login")).into_response();
-        let Some(token) = session_token(&parts.headers) else { return Err(login()) };
+        let Some(token) = session_token(&parts.headers) else {
+            return Err(login());
+        };
         let row: Option<(i64, String, String)> = sqlx::query_as(
             "SELECT u.id, u.username, s.csrf_token FROM sessions s JOIN users u ON u.id = s.user_id
              WHERE s.token_hash = ? AND s.expires_at > ?",
@@ -198,7 +228,9 @@ impl LoginLimiter {
         if map.len() > 10_000 {
             map.retain(|_, v| v.iter().any(|t| t.elapsed() < WINDOW));
         }
-        map.entry(key.to_lowercase()).or_default().push(Instant::now());
+        map.entry(key.to_lowercase())
+            .or_default()
+            .push(Instant::now());
     }
 
     pub fn clear(&self, key: &str) {
@@ -221,7 +253,10 @@ mod tests {
     fn setup_code_normalizes() {
         let code = generate_setup_code();
         assert_eq!(code.len(), 9);
-        assert_eq!(normalize_setup_code(&code.to_lowercase().replace('-', " ")), normalize_setup_code(&code));
+        assert_eq!(
+            normalize_setup_code(&code.to_lowercase().replace('-', " ")),
+            normalize_setup_code(&code)
+        );
     }
 
     #[test]

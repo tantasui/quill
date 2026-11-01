@@ -12,9 +12,16 @@ use crate::state::AppState;
 
 use super::{admin_context, origin_warning, render};
 
-pub async fn integration(State(state): State<AppState>, user: AdminUser, headers: HeaderMap) -> AppResult<Response> {
+pub async fn integration(
+    State(state): State<AppState>,
+    user: AdminUser,
+    headers: HeaderMap,
+) -> AppResult<Response> {
     let s = state.settings();
-    let upstream = state.listen.replace("0.0.0.0", "127.0.0.1").replace("[::]", "[::1]");
+    let upstream = state
+        .listen
+        .replace("0.0.0.0", "127.0.0.1")
+        .replace("[::]", "[::1]");
     let host = url::Url::parse(&s.base_url)
         .ok()
         .and_then(|u| u.host_str().map(str::to_string))

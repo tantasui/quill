@@ -1,2 +1,0 @@
-# Chosen by measurement; see docs/decisions/001-rustfmt-width.md.
-max_width = 160

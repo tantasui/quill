@@ -30,7 +30,11 @@ pub async fn login_form(State(state): State<AppState>) -> AppResult<Response> {
     Ok(render(&state, "login", &ctx)?.into_response())
 }
 
-pub async fn login_submit(State(state): State<AppState>, headers: HeaderMap, Form(form): Form<LoginForm>) -> AppResult<Response> {
+pub async fn login_submit(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Form(form): Form<LoginForm>,
+) -> AppResult<Response> {
     let s = state.settings();
     if state.needs_setup() {
         return Ok(redirect(&s, "/admin/setup"));
@@ -47,10 +51,11 @@ pub async fn login_submit(State(state): State<AppState>, headers: HeaderMap, For
             "Too many failed attempts for this account. Wait 15 minutes and try again, or reset the password from the server with “quill reset-password”.",
         );
     }
-    let user: Option<(i64, String)> = sqlx::query_as("SELECT id, password_hash FROM users WHERE username = ?")
-        .bind(username)
-        .fetch_optional(&state.db)
-        .await?;
+    let user: Option<(i64, String)> =
+        sqlx::query_as("SELECT id, password_hash FROM users WHERE username = ?")
+            .bind(username)
+            .fetch_optional(&state.db)
+            .await?;
     // Hash even for unknown users so response timing doesn't reveal which exist.
     let valid = match &user {
         Some((_, hash)) => auth::verify_password(&form.password, hash),
@@ -69,12 +74,19 @@ pub async fn login_submit(State(state): State<AppState>, headers: HeaderMap, For
     state.login_limiter.clear(username);
     let token = auth::create_session(&state.db, user_id).await?;
     let mut res = redirect(&s, "/admin");
-    res.headers_mut()
-        .insert(header::SET_COOKIE, auth::session_cookie(&token, auth::is_https(&headers)).parse()?);
+    res.headers_mut().insert(
+        header::SET_COOKIE,
+        auth::session_cookie(&token, auth::is_https(&headers)).parse()?,
+    );
     Ok(res)
 }
 
-pub async fn logout(State(state): State<AppState>, user: AdminUser, headers: HeaderMap, Form(form): Form<CsrfForm>) -> AppResult<Response> {
+pub async fn logout(
+    State(state): State<AppState>,
+    user: AdminUser,
+    headers: HeaderMap,
+    Form(form): Form<CsrfForm>,
+) -> AppResult<Response> {
     if let Err(r) = user.check_csrf(&form.csrf) {
         return Ok(r);
     }
@@ -82,6 +94,7 @@ pub async fn logout(State(state): State<AppState>, user: AdminUser, headers: Hea
         auth::delete_session(&state.db, &token).await?;
     }
     let mut res = redirect(&state.settings(), "/admin/login");
-    res.headers_mut().insert(header::SET_COOKIE, auth::clear_session_cookie().parse()?);
+    res.headers_mut()
+        .insert(header::SET_COOKIE, auth::clear_session_cookie().parse()?);
     Ok(res)
 }

@@ -28,7 +28,13 @@ pub struct SettingsForm {
     footer_text: String,
 }
 
-fn settings_context(s: &Settings, user: &AdminUser, form: &Value, errors: &[String], notice: Option<&str>) -> Ctx {
+fn settings_context(
+    s: &Settings,
+    user: &AdminUser,
+    form: &Value,
+    errors: &[String],
+    notice: Option<&str>,
+) -> Ctx {
     let mut ctx = admin_context(s, Some(user), "settings");
     ctx.insert("form".into(), form.clone());
     ctx.insert("errors".into(), json!(errors));
@@ -36,13 +42,26 @@ fn settings_context(s: &Settings, user: &AdminUser, form: &Value, errors: &[Stri
     ctx
 }
 
-pub async fn settings_form(State(state): State<AppState>, user: AdminUser, Query(q): Query<NoticeQuery>) -> AppResult<Response> {
+pub async fn settings_form(
+    State(state): State<AppState>,
+    user: AdminUser,
+    Query(q): Query<NoticeQuery>,
+) -> AppResult<Response> {
     let s = state.settings();
     let form = json!(s);
-    Ok(render(&state, "settings", &settings_context(&s, &user, &form, &[], notice_text(q.notice.as_deref())))?.into_response())
+    Ok(render(
+        &state,
+        "settings",
+        &settings_context(&s, &user, &form, &[], notice_text(q.notice.as_deref())),
+    )?
+    .into_response())
 }
 
-pub async fn settings_submit(State(state): State<AppState>, user: AdminUser, Form(form): Form<SettingsForm>) -> AppResult<Response> {
+pub async fn settings_submit(
+    State(state): State<AppState>,
+    user: AdminUser,
+    Form(form): Form<SettingsForm>,
+) -> AppResult<Response> {
     if let Err(r) = user.check_csrf(&form.csrf) {
         return Ok(r);
     }
@@ -51,7 +70,9 @@ pub async fn settings_submit(State(state): State<AppState>, user: AdminUser, For
     if form.site_name.trim().is_empty() {
         errors.push("The blog needs a name.".to_string());
     }
-    let base_url = normalize_base_url(&form.base_url).map_err(|e| errors.push(e)).ok();
+    let base_url = normalize_base_url(&form.base_url)
+        .map_err(|e| errors.push(e))
+        .ok();
     let posts_per_page = match form.posts_per_page.trim().parse::<i64>() {
         Ok(n @ 1..=50) => n,
         _ => {
@@ -60,7 +81,11 @@ pub async fn settings_submit(State(state): State<AppState>, user: AdminUser, For
         }
     };
     let language = form.language.trim();
-    if !(2..=12).contains(&language.len()) || !language.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+    if !(2..=12).contains(&language.len())
+        || !language
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-')
+    {
         errors.push("Use a language code such as en, fr or pt-BR.".into());
     }
     if !errors.is_empty() {
@@ -68,7 +93,11 @@ pub async fn settings_submit(State(state): State<AppState>, user: AdminUser, For
                           "author_name": form.author_name, "posts_per_page": form.posts_per_page,
                           "language": form.language, "footer_text": form.footer_text});
         let ctx = settings_context(&current, &user, &echo, &errors, None);
-        return Ok((StatusCode::UNPROCESSABLE_ENTITY, render(&state, "settings", &ctx)?).into_response());
+        return Ok((
+            StatusCode::UNPROCESSABLE_ENTITY,
+            render(&state, "settings", &ctx)?,
+        )
+            .into_response());
     }
     let mut s = current;
     s.site_name = form.site_name.trim().to_string();

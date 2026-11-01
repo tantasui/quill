@@ -28,7 +28,9 @@ impl Default for Views {
 impl Views {
     pub fn new() -> Self {
         let mut env = Environment::new();
-        env.set_loader(|name| Ok(TemplateFiles::get(name).map(|f| String::from_utf8_lossy(&f.data).into_owned())));
+        env.set_loader(|name| {
+            Ok(TemplateFiles::get(name).map(|f| String::from_utf8_lossy(&f.data).into_owned()))
+        });
         env.set_auto_escape_callback(|name| {
             if name.ends_with(".html") || name.ends_with(".xml") {
                 AutoEscape::Html
@@ -71,8 +73,12 @@ impl Views {
     }
 
     pub fn render(&self, name: &str, ctx: impl Serialize) -> Result<String> {
-        let tmpl = self.env.get_template(name).with_context(|| format!("template {name}"))?;
-        tmpl.render(ctx).with_context(|| format!("rendering {name}"))
+        let tmpl = self
+            .env
+            .get_template(name)
+            .with_context(|| format!("template {name}"))?;
+        tmpl.render(ctx)
+            .with_context(|| format!("rendering {name}"))
     }
 }
 
@@ -85,7 +91,10 @@ mod tests {
     fn all_templates_compile() {
         let views = Views::new();
         for name in TemplateFiles::iter() {
-            views.env.get_template(&name).unwrap_or_else(|e| panic!("{name}: {e:#}"));
+            views
+                .env
+                .get_template(&name)
+                .unwrap_or_else(|e| panic!("{name}: {e:#}"));
         }
     }
 }

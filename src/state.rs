@@ -34,9 +34,16 @@ impl Deref for AppState {
 impl AppState {
     /// `setup_code` is used only if the installation still needs an admin; a
     /// random one is generated when it is `None`.
-    pub async fn new(db: SqlitePool, data_dir: PathBuf, listen: String, setup_code: Option<String>) -> Result<Self> {
+    pub async fn new(
+        db: SqlitePool,
+        data_dir: PathBuf,
+        listen: String,
+        setup_code: Option<String>,
+    ) -> Result<Self> {
         let settings = Settings::load(&db).await?;
-        let users: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM users").fetch_one(&db).await?;
+        let users: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM users")
+            .fetch_one(&db)
+            .await?;
         let setup_code = (users == 0).then(|| setup_code.unwrap_or_else(auth::generate_setup_code));
         Ok(AppState(Arc::new(Inner {
             db,

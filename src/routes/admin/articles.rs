@@ -24,9 +24,14 @@ fn admin_article_row(s: &Settings, a: &Article, tags: &[Tag], now: DateTime<Utc>
         "draft" => format!("Edited {}", public::format_date(a.updated_at)),
         "scheduled" => format!(
             "Goes live {}",
-            a.published_at.map(|d| d.format("%B %-d, %Y at %H:%M UTC").to_string()).unwrap_or_default()
+            a.published_at
+                .map(|d| d.format("%B %-d, %Y at %H:%M UTC").to_string())
+                .unwrap_or_default()
         ),
-        _ => format!("Published {}", a.published_at.map(public::format_date).unwrap_or_default()),
+        _ => format!(
+            "Published {}",
+            a.published_at.map(public::format_date).unwrap_or_default()
+        ),
     };
     json!({
         "id": a.id,
@@ -39,7 +44,11 @@ fn admin_article_row(s: &Settings, a: &Article, tags: &[Tag], now: DateTime<Utc>
     })
 }
 
-pub(super) async fn article_rows(state: &AppState, s: &Settings, articles: &[Article]) -> AppResult<Vec<Value>> {
+pub(super) async fn article_rows(
+    state: &AppState,
+    s: &Settings,
+    articles: &[Article],
+) -> AppResult<Vec<Value>> {
     let ids: Vec<i64> = articles.iter().map(|a| a.id).collect();
     let tags = models::tags_for(&state.db, &ids).await?;
     let now = Utc::now();
@@ -49,7 +58,11 @@ pub(super) async fn article_rows(state: &AppState, s: &Settings, articles: &[Art
         .collect())
 }
 
-pub async fn articles(State(state): State<AppState>, user: AdminUser, Query(q): Query<NoticeQuery>) -> AppResult<Response> {
+pub async fn articles(
+    State(state): State<AppState>,
+    user: AdminUser,
+    Query(q): Query<NoticeQuery>,
+) -> AppResult<Response> {
     let s = state.settings();
     let filter = q
         .status
@@ -58,7 +71,10 @@ pub async fn articles(State(state): State<AppState>, user: AdminUser, Query(q): 
         .unwrap_or("all");
     let list = models::list_admin(&state.db, filter, 1000).await?;
     let mut ctx = admin_context(&s, Some(&user), "articles");
-    ctx.insert("articles".into(), json!(article_rows(&state, &s, &list).await?));
+    ctx.insert(
+        "articles".into(),
+        json!(article_rows(&state, &s, &list).await?),
+    );
     ctx.insert("filter".into(), json!(filter));
     ctx.insert("counts".into(), json!(models::counts(&state.db).await?));
     ctx.insert("notice".into(), json!(notice_text(q.notice.as_deref())));
@@ -97,15 +113,25 @@ impl ArticleForm {
             cover_image: a.cover_image.clone(),
             meta_title: a.meta_title.clone(),
             meta_description: a.meta_description.clone(),
-            tags: tags.iter().map(|t| t.name.as_str()).collect::<Vec<_>>().join(", "),
-            published_at: a.published_at.map(|d| d.format("%Y-%m-%dT%H:%M").to_string()).unwrap_or_default(),
+            tags: tags
+                .iter()
+                .map(|t| t.name.as_str())
+                .collect::<Vec<_>>()
+                .join(", "),
+            published_at: a
+                .published_at
+                .map(|d| d.format("%Y-%m-%dT%H:%M").to_string())
+                .unwrap_or_default(),
             tz_offset: "0".into(),
             ..Default::default()
         }
     }
 }
 
-pub fn parse_local_datetime(value: &str, tz_offset_minutes: &str) -> Result<Option<DateTime<Utc>>, String> {
+pub fn parse_local_datetime(
+    value: &str,
+    tz_offset_minutes: &str,
+) -> Result<Option<DateTime<Utc>>, String> {
     let value = value.trim();
     if value.is_empty() {
         return Ok(None);
@@ -113,11 +139,19 @@ pub fn parse_local_datetime(value: &str, tz_offset_minutes: &str) -> Result<Opti
     let naive = NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M")
         .or_else(|_| NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S"))
         .map_err(|_| "The publication date isn't a valid date and time.".to_string())?;
-    let offset: i64 = tz_offset_minutes.trim().parse().unwrap_or(0).clamp(-1440, 1440);
+    let offset: i64 = tz_offset_minutes
+        .trim()
+        .parse()
+        .unwrap_or(0)
+        .clamp(-1440, 1440);
     Ok(Some(naive.and_utc() + chrono::Duration::minutes(offset)))
 }
 
-async fn build_input(state: &AppState, form: &ArticleForm, existing: Option<&Article>) -> AppResult<Result<ArticleInput, Vec<String>>> {
+async fn build_input(
+    state: &AppState,
+    form: &ArticleForm,
+    existing: Option<&Article>,
+) -> AppResult<Result<ArticleInput, Vec<String>>> {
     let mut errors = Vec::new();
     let title = form.title.split_whitespace().collect::<Vec<_>>().join(" ");
     if title.is_empty() {
@@ -129,14 +163,20 @@ async fn build_input(state: &AppState, form: &ArticleForm, existing: Option<&Art
     let except = existing.map(|a| a.id);
     let slug = if form.slug.trim().is_empty() {
         let base = slug::slugify(&title);
-        let base = if base.is_empty() { "article".to_string() } else { base };
+        let base = if base.is_empty() {
+            "article".to_string()
+        } else {
+            base
+        };
         models::unique_slug(&state.db, &base, except).await?
     } else {
         let slug = slug::slugify(form.slug.trim());
         if slug.is_empty() {
             errors.push("The URL slug needs at least one letter or number.".to_string());
         } else if let Some(owner) = models::slug_owner(&state.db, &slug, except).await? {
-            errors.push(format!("The URL slug “{slug}” is already used by “{owner}”. Choose another one."));
+            errors.push(format!(
+                "The URL slug “{slug}” is already used by “{owner}”. Choose another one."
+            ));
         }
         slug
     };
@@ -149,7 +189,11 @@ async fn build_input(state: &AppState, form: &ArticleForm, existing: Option<&Art
     .to_string();
     let published_at = match parse_local_datetime(&form.published_at, &form.tz_offset) {
         Ok(Some(d)) => Some(d),
-        Ok(None) if status == "published" => Some(existing.and_then(|a| a.published_at).unwrap_or_else(Utc::now)),
+        Ok(None) if status == "published" => Some(
+            existing
+                .and_then(|a| a.published_at)
+                .unwrap_or_else(Utc::now),
+        ),
         Ok(None) => None,
         Err(e) => {
             errors.push(e);
@@ -158,7 +202,11 @@ async fn build_input(state: &AppState, form: &ArticleForm, existing: Option<&Art
     };
 
     let cover_image = form.cover_image.trim().to_string();
-    if !(cover_image.is_empty() || cover_image.starts_with("/media/") || cover_image.starts_with("https://") || cover_image.starts_with("http://")) {
+    if !(cover_image.is_empty()
+        || cover_image.starts_with("/media/")
+        || cover_image.starts_with("https://")
+        || cover_image.starts_with("http://"))
+    {
         errors.push("The cover image must be an uploaded file or a full web address starting with https://.".to_string());
     }
 
@@ -179,7 +227,14 @@ async fn build_input(state: &AppState, form: &ArticleForm, existing: Option<&Art
     }))
 }
 
-fn editor_context(s: &Settings, user: &AdminUser, form: &ArticleForm, article: Option<&Article>, errors: &[String], notice: Option<&str>) -> Ctx {
+fn editor_context(
+    s: &Settings,
+    user: &AdminUser,
+    form: &ArticleForm,
+    article: Option<&Article>,
+    errors: &[String],
+    notice: Option<&str>,
+) -> Ctx {
     let now = Utc::now();
     let mut ctx = admin_context(s, Some(user), "editor");
     ctx.insert(
@@ -209,24 +264,47 @@ fn editor_context(s: &Settings, user: &AdminUser, form: &ArticleForm, article: O
     );
     ctx.insert("errors".into(), json!(errors));
     ctx.insert("notice".into(), json!(notice));
-    ctx.insert("slug_prefix".into(), json!(format!("{}/posts/", s.base_url)));
+    ctx.insert(
+        "slug_prefix".into(),
+        json!(format!("{}/posts/", s.base_url)),
+    );
     ctx
 }
 
 pub async fn new_article(State(state): State<AppState>, user: AdminUser) -> AppResult<Response> {
     let s = state.settings();
     let form = ArticleForm::default();
-    Ok(render(&state, "editor", &editor_context(&s, &user, &form, None, &[], None))?.into_response())
+    Ok(render(
+        &state,
+        "editor",
+        &editor_context(&s, &user, &form, None, &[], None),
+    )?
+    .into_response())
 }
 
-pub async fn edit_article(State(state): State<AppState>, user: AdminUser, Path(id): Path<i64>, Query(q): Query<NoticeQuery>) -> AppResult<Response> {
+pub async fn edit_article(
+    State(state): State<AppState>,
+    user: AdminUser,
+    Path(id): Path<i64>,
+    Query(q): Query<NoticeQuery>,
+) -> AppResult<Response> {
     let s = state.settings();
     let Some(a) = models::get(&state.db, id).await? else {
         return public::not_found(State(state), "/admin/missing".parse().unwrap()).await;
     };
-    let tags = models::tags_for(&state.db, &[a.id]).await?.remove(&a.id).unwrap_or_default();
+    let tags = models::tags_for(&state.db, &[a.id])
+        .await?
+        .remove(&a.id)
+        .unwrap_or_default();
     let form = ArticleForm::from_article(&a, &tags);
-    let ctx = editor_context(&s, &user, &form, Some(&a), &[], notice_text(q.notice.as_deref()));
+    let ctx = editor_context(
+        &s,
+        &user,
+        &form,
+        Some(&a),
+        &[],
+        notice_text(q.notice.as_deref()),
+    );
     Ok(render(&state, "editor", &ctx)?.into_response())
 }
 
@@ -240,7 +318,11 @@ fn status_notice(before: Option<&Article>, input: &ArticleInput) -> &'static str
     }
 }
 
-pub async fn create_article(State(state): State<AppState>, user: AdminUser, Form(form): Form<ArticleForm>) -> AppResult<Response> {
+pub async fn create_article(
+    State(state): State<AppState>,
+    user: AdminUser,
+    Form(form): Form<ArticleForm>,
+) -> AppResult<Response> {
     if let Err(r) = user.check_csrf(&form.csrf) {
         return Ok(r);
     }
@@ -249,15 +331,27 @@ pub async fn create_article(State(state): State<AppState>, user: AdminUser, Form
         Ok(input) => input,
         Err(errors) => {
             let ctx = editor_context(&s, &user, &form, None, &errors, None);
-            return Ok((StatusCode::UNPROCESSABLE_ENTITY, render(&state, "editor", &ctx)?).into_response());
+            return Ok((
+                StatusCode::UNPROCESSABLE_ENTITY,
+                render(&state, "editor", &ctx)?,
+            )
+                .into_response());
         }
     };
     let id = models::create(&state.db, &input, user.id).await?;
     let notice = status_notice(None, &input);
-    Ok(redirect(&s, &format!("/admin/articles/{id}/edit?notice={notice}")))
+    Ok(redirect(
+        &s,
+        &format!("/admin/articles/{id}/edit?notice={notice}"),
+    ))
 }
 
-pub async fn update_article(State(state): State<AppState>, user: AdminUser, Path(id): Path<i64>, Form(form): Form<ArticleForm>) -> AppResult<Response> {
+pub async fn update_article(
+    State(state): State<AppState>,
+    user: AdminUser,
+    Path(id): Path<i64>,
+    Form(form): Form<ArticleForm>,
+) -> AppResult<Response> {
     if let Err(r) = user.check_csrf(&form.csrf) {
         return Ok(r);
     }
@@ -269,24 +363,43 @@ pub async fn update_article(State(state): State<AppState>, user: AdminUser, Path
         Ok(input) => input,
         Err(errors) => {
             let ctx = editor_context(&s, &user, &form, Some(&existing), &errors, None);
-            return Ok((StatusCode::UNPROCESSABLE_ENTITY, render(&state, "editor", &ctx)?).into_response());
+            return Ok((
+                StatusCode::UNPROCESSABLE_ENTITY,
+                render(&state, "editor", &ctx)?,
+            )
+                .into_response());
         }
     };
     models::update(&state.db, &existing, &input).await?;
     let notice = status_notice(Some(&existing), &input);
-    Ok(redirect(&s, &format!("/admin/articles/{id}/edit?notice={notice}")))
+    Ok(redirect(
+        &s,
+        &format!("/admin/articles/{id}/edit?notice={notice}"),
+    ))
 }
 
-pub async fn delete_article(State(state): State<AppState>, user: AdminUser, Path(id): Path<i64>, Form(form): Form<CsrfForm>) -> AppResult<Response> {
+pub async fn delete_article(
+    State(state): State<AppState>,
+    user: AdminUser,
+    Path(id): Path<i64>,
+    Form(form): Form<CsrfForm>,
+) -> AppResult<Response> {
     if let Err(r) = user.check_csrf(&form.csrf) {
         return Ok(r);
     }
     models::delete(&state.db, id).await?;
-    Ok(redirect(&state.settings(), "/admin/articles?notice=deleted"))
+    Ok(redirect(
+        &state.settings(),
+        "/admin/articles?notice=deleted",
+    ))
 }
 
 /// Renders unsaved editor contents with the live theme, without saving.
-pub async fn preview_article(State(state): State<AppState>, user: AdminUser, Form(form): Form<ArticleForm>) -> AppResult<Response> {
+pub async fn preview_article(
+    State(state): State<AppState>,
+    user: AdminUser,
+    Form(form): Form<ArticleForm>,
+) -> AppResult<Response> {
     if let Err(r) = user.check_csrf(&form.csrf) {
         return Ok(r);
     }
@@ -312,7 +425,10 @@ pub async fn preview_article(State(state): State<AppState>, user: AdminUser, For
         meta_title: form.meta_title.clone(),
         meta_description: form.meta_description.clone(),
         author_id: Some(user.id),
-        published_at: parse_local_datetime(&form.published_at, &form.tz_offset).ok().flatten().or(Some(now)),
+        published_at: parse_local_datetime(&form.published_at, &form.tz_offset)
+            .ok()
+            .flatten()
+            .or(Some(now)),
         created_at: now,
         updated_at: now,
     };
@@ -324,7 +440,8 @@ pub async fn preview_article(State(state): State<AppState>, user: AdminUser, For
             name,
         })
         .collect();
-    let mut ctx = public::article_context_with_tags(&state, &s, &s.theme, &article, &tags, true).await?;
+    let mut ctx =
+        public::article_context_with_tags(&state, &s, &s.theme, &article, &tags, true).await?;
     ctx.insert(
         "preview_label".into(),
         json!("Preview — this is how the article will look. It hasn't been saved."),
@@ -342,7 +459,11 @@ pub struct MarkdownForm {
 }
 
 /// Live preview pane in the editor.
-pub async fn preview_markdown(State(state): State<AppState>, user: AdminUser, Form(form): Form<MarkdownForm>) -> Response {
+pub async fn preview_markdown(
+    State(state): State<AppState>,
+    user: AdminUser,
+    Form(form): Form<MarkdownForm>,
+) -> Response {
     if let Err(r) = user.check_csrf(&form.csrf) {
         return r;
     }
@@ -356,7 +477,9 @@ mod tests {
     #[test]
     fn local_datetime_uses_browser_offset() {
         // UTC+2 reports an offset of -120.
-        let d = parse_local_datetime("2026-05-01T12:00", "-120").unwrap().unwrap();
+        let d = parse_local_datetime("2026-05-01T12:00", "-120")
+            .unwrap()
+            .unwrap();
         assert_eq!(d.to_rfc3339(), "2026-05-01T10:00:00+00:00");
         assert_eq!(parse_local_datetime("", "0").unwrap(), None);
         assert!(parse_local_datetime("yesterday", "0").is_err());

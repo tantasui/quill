@@ -46,9 +46,16 @@ fn existing_db(data_dir: &Path) -> Result<PathBuf> {
 /// is running.
 pub async fn backup(data_dir: &Path, out: Option<PathBuf>) -> Result<PathBuf> {
     let db_path = existing_db(data_dir)?;
-    let out = out.unwrap_or_else(|| data_dir.join("backups").join(format!("backup-{}", timestamp())));
+    let out = out.unwrap_or_else(|| {
+        data_dir
+            .join("backups")
+            .join(format!("backup-{}", timestamp()))
+    });
     if out.join(DB_FILE).exists() {
-        bail!("{} already contains a backup; choose an empty folder", out.display());
+        bail!(
+            "{} already contains a backup; choose an empty folder",
+            out.display()
+        );
     }
     std::fs::create_dir_all(&out).with_context(|| format!("could not create {}", out.display()))?;
     let pool = db::connect(&db_path).await?;
@@ -62,7 +69,10 @@ pub async fn backup(data_dir: &Path, out: Option<PathBuf>) -> Result<PathBuf> {
         "articles": articles,
         "media_files": media,
     });
-    std::fs::write(out.join("manifest.json"), serde_json::to_string_pretty(&manifest)?)?;
+    std::fs::write(
+        out.join("manifest.json"),
+        serde_json::to_string_pretty(&manifest)?,
+    )?;
     Ok(out)
 }
 
@@ -71,14 +81,21 @@ pub async fn backup(data_dir: &Path, out: Option<PathBuf>) -> Result<PathBuf> {
 pub async fn restore(data_dir: &Path, from: &Path) -> Result<PathBuf> {
     let source_db = from.join(DB_FILE);
     if !source_db.exists() {
-        bail!("{} doesn't look like a Quill backup (no {DB_FILE} inside)", from.display());
+        bail!(
+            "{} doesn't look like a Quill backup (no {DB_FILE} inside)",
+            from.display()
+        );
     }
     // Make sure the snapshot is a readable blog database before touching anything.
     let pool = db::connect(&source_db).await?;
-    let check: String = sqlx::query_scalar("PRAGMA integrity_check").fetch_one(&pool).await?;
-    let has_articles: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'articles'")
+    let check: String = sqlx::query_scalar("PRAGMA integrity_check")
         .fetch_one(&pool)
         .await?;
+    let has_articles: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'articles'",
+    )
+    .fetch_one(&pool)
+    .await?;
     pool.close().await;
     if check != "ok" || has_articles == 0 {
         bail!("the backup database failed its integrity check ({check}); nothing was changed");
@@ -87,10 +104,16 @@ pub async fn restore(data_dir: &Path, from: &Path) -> Result<PathBuf> {
     std::fs::create_dir_all(data_dir)?;
     let aside = data_dir.join(format!("pre-restore-{}", timestamp()));
     std::fs::create_dir_all(&aside)?;
-    for name in [DB_FILE.to_string(), format!("{DB_FILE}-wal"), format!("{DB_FILE}-shm"), "media".to_string()] {
+    for name in [
+        DB_FILE.to_string(),
+        format!("{DB_FILE}-wal"),
+        format!("{DB_FILE}-shm"),
+        "media".to_string(),
+    ] {
         let path = data_dir.join(&name);
         if path.exists() {
-            std::fs::rename(&path, aside.join(&name)).with_context(|| format!("could not move {} aside", path.display()))?;
+            std::fs::rename(&path, aside.join(&name))
+                .with_context(|| format!("could not move {} aside", path.display()))?;
         }
     }
     std::fs::copy(&source_db, data_dir.join(DB_FILE))?;
@@ -115,7 +138,12 @@ pub async fn export(data_dir: &Path, out: &Path) -> Result<usize> {
 
     std::fs::create_dir_all(out)?;
     for a in &articles {
-        let tag_names: Vec<String> = tags.get(&a.id).into_iter().flatten().map(|t| yaml_str(&t.name)).collect();
+        let tag_names: Vec<String> = tags
+            .get(&a.id)
+            .into_iter()
+            .flatten()
+            .map(|t| yaml_str(&t.name))
+            .collect();
         let mut fm = vec![
             format!("title: {}", yaml_str(&a.title)),
             format!("slug: {}", yaml_str(&a.slug)),

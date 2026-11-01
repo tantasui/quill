@@ -25,7 +25,10 @@ fn admin_context(s: &Settings, user: Option<&AdminUser>, section: &str) -> Ctx {
     let mut ctx = Ctx::new();
     ctx.insert("base".into(), json!(s.base_path));
     ctx.insert("version".into(), json!(VERSION));
-    ctx.insert("site".into(), json!({"name": s.site_name, "url": s.base_url}));
+    ctx.insert(
+        "site".into(),
+        json!({"name": s.site_name, "url": s.base_url}),
+    );
     ctx.insert("section".into(), json!(section));
     if let Some(u) = user {
         ctx.insert("user".into(), json!({"username": u.username}));
@@ -35,7 +38,9 @@ fn admin_context(s: &Settings, user: Option<&AdminUser>, section: &str) -> Ctx {
 }
 
 fn render(state: &AppState, name: &str, ctx: &Ctx) -> AppResult<Html<String>> {
-    Ok(Html(state.views.render(&format!("admin/{name}.html"), ctx)?))
+    Ok(Html(
+        state.views.render(&format!("admin/{name}.html"), ctx)?,
+    ))
 }
 
 fn redirect(s: &Settings, path: &str) -> Response {
@@ -50,7 +55,9 @@ pub struct NoticeQuery {
 
 fn notice_text(key: Option<&str>) -> Option<&'static str> {
     Some(match key? {
-        "welcome" => "Your blog is ready. Write your first article, or look around the settings first.",
+        "welcome" => {
+            "Your blog is ready. Write your first article, or look around the settings first."
+        }
         "saved" => "Changes saved.",
         "published" => "Published. The article is now live on your blog.",
         "scheduled" => "Scheduled. The article will appear on your blog at its publication date.",

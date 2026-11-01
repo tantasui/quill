@@ -27,12 +27,17 @@ struct Res {
 
 impl Res {
     fn location(&self) -> &str {
-        self.headers.get(header::LOCATION).and_then(|v| v.to_str().ok()).unwrap_or("")
+        self.headers
+            .get(header::LOCATION)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("")
     }
 }
 
 fn form(pairs: &[(&str, &str)]) -> String {
-    url::form_urlencoded::Serializer::new(String::new()).extend_pairs(pairs).finish()
+    url::form_urlencoded::Serializer::new(String::new())
+        .extend_pairs(pairs)
+        .finish()
 }
 
 fn extract_csrf(html: &str) -> String {
@@ -46,9 +51,14 @@ impl TestApp {
         let dir = tempfile::tempdir().unwrap();
         let pool = db::connect_memory().await.unwrap();
         db::migrate(&pool, None).await.unwrap();
-        let state = AppState::new(pool, dir.path().to_path_buf(), "127.0.0.1:3000".into(), Some(SETUP_CODE.into()))
-            .await
-            .unwrap();
+        let state = AppState::new(
+            pool,
+            dir.path().to_path_buf(),
+            "127.0.0.1:3000".into(),
+            Some(SETUP_CODE.into()),
+        )
+        .await
+        .unwrap();
         TestApp {
             app: quill::app(state.clone()),
             state,
@@ -83,7 +93,12 @@ impl TestApp {
     }
 
     fn take_cookie(&mut self, res: &Res) {
-        let set = res.headers.get(header::SET_COOKIE).expect("session cookie").to_str().unwrap();
+        let set = res
+            .headers
+            .get(header::SET_COOKIE)
+            .expect("session cookie")
+            .to_str()
+            .unwrap();
         self.cookie = Some(set.split(';').next().unwrap().to_string());
     }
 
@@ -106,7 +121,10 @@ impl TestApp {
     }
 
     fn builder(&self, method: Method, uri: &str) -> axum::http::request::Builder {
-        let mut b = Request::builder().method(method).uri(uri).header(header::HOST, "example.com");
+        let mut b = Request::builder()
+            .method(method)
+            .uri(uri)
+            .header(header::HOST, "example.com");
         if let Some(c) = &self.cookie {
             b = b.header(header::COOKIE, c);
         }
@@ -114,7 +132,8 @@ impl TestApp {
     }
 
     async fn get(&self, uri: &str) -> Res {
-        self.send(self.builder(Method::GET, uri).body(Body::empty()).unwrap()).await
+        self.send(self.builder(Method::GET, uri).body(Body::empty()).unwrap())
+            .await
     }
 
     async fn post_form(&self, uri: &str, pairs: &[(&str, &str)]) -> Res {
@@ -127,7 +146,12 @@ impl TestApp {
     }
 
     async fn create_article(&self, title: &str, content: &str, extra: &[(&str, &str)]) -> Res {
-        let mut pairs = vec![("_csrf", self.csrf.as_str()), ("title", title), ("content", content), ("action", "publish")];
+        let mut pairs = vec![
+            ("_csrf", self.csrf.as_str()),
+            ("title", title),
+            ("content", content),
+            ("action", "publish"),
+        ];
         pairs.extend_from_slice(extra);
         self.post_form("/blog/admin/articles", &pairs).await
     }
@@ -145,7 +169,10 @@ async fn fresh_install_requires_setup_code() {
 
     let form = t.get("/admin/setup").await;
     assert_eq!(form.status, StatusCode::OK);
-    assert!(form.body.contains("http://example.com"), "base URL guessed from Host header");
+    assert!(
+        form.body.contains("http://example.com"),
+        "base URL guessed from Host header"
+    );
 
     let wrong = t
         .post_form(
@@ -179,20 +206,33 @@ async fn publish_and_read_under_base_path() {
         )
         .await;
     assert_eq!(res.status, StatusCode::SEE_OTHER, "{}", res.body);
-    assert_eq!(res.location(), "/blog/admin/articles/1/edit?notice=published");
+    assert_eq!(
+        res.location(),
+        "/blog/admin/articles/1/edit?notice=published"
+    );
 
     let home = t.get("/blog/").await;
     assert_eq!(home.status, StatusCode::OK);
     assert!(home.body.contains(r#"href="/blog/posts/hello-world""#));
     assert!(home.body.contains("/blog/static/themes/editorial.css"));
-    assert!(home.body.contains(r#"<link rel="canonical" href="https://example.com/blog/">"#));
+    assert!(home
+        .body
+        .contains(r#"<link rel="canonical" href="https://example.com/blog/">"#));
 
     let article = t.get("/blog/posts/hello-world").await;
     assert_eq!(article.status, StatusCode::OK);
     assert!(article.body.contains("First paragraph."));
-    assert!(!article.body.contains("<script>alert"), "markdown must be sanitized");
-    assert!(article.body.contains(r#"src="/blog/media/cat.png""#), "media paths get the base path");
-    assert!(article.body.contains("https://example.com/blog/posts/hello-world"));
+    assert!(
+        !article.body.contains("<script>alert"),
+        "markdown must be sanitized"
+    );
+    assert!(
+        article.body.contains(r#"src="/blog/media/cat.png""#),
+        "media paths get the base path"
+    );
+    assert!(article
+        .body
+        .contains("https://example.com/blog/posts/hello-world"));
     assert!(article.body.contains(r#"href="/blog/tags/rust""#));
     assert!(article.body.contains("Web Dev"));
 
@@ -204,18 +244,33 @@ async fn publish_and_read_under_base_path() {
     let tag = t.get("/blog/tags/rust").await;
     assert_eq!(tag.status, StatusCode::OK);
     assert!(tag.body.contains("Hello, World!"));
-    assert_eq!(t.get("/blog/tags/missing").await.status, StatusCode::NOT_FOUND);
+    assert_eq!(
+        t.get("/blog/tags/missing").await.status,
+        StatusCode::NOT_FOUND
+    );
 
     let feed = t.get("/blog/feed.xml").await;
     assert_eq!(feed.status, StatusCode::OK);
-    assert!(feed.headers[header::CONTENT_TYPE].to_str().unwrap().starts_with("application/atom+xml"));
-    assert!(feed.body.contains("<id>https://example.com/blog/posts/hello-world</id>"));
-    assert!(feed.body.contains("https://example.com/blog/media/cat.png"), "feeds use absolute media URLs");
+    assert!(feed.headers[header::CONTENT_TYPE]
+        .to_str()
+        .unwrap()
+        .starts_with("application/atom+xml"));
+    assert!(feed
+        .body
+        .contains("<id>https://example.com/blog/posts/hello-world</id>"));
+    assert!(
+        feed.body.contains("https://example.com/blog/media/cat.png"),
+        "feeds use absolute media URLs"
+    );
 
     let sitemap = t.get("/blog/sitemap.xml").await;
-    assert!(sitemap.body.contains("<loc>https://example.com/blog/posts/hello-world</loc>"));
+    assert!(sitemap
+        .body
+        .contains("<loc>https://example.com/blog/posts/hello-world</loc>"));
     let robots = t.get("/blog/robots.txt").await;
-    assert!(robots.body.contains("Sitemap: https://example.com/blog/sitemap.xml"));
+    assert!(robots
+        .body
+        .contains("Sitemap: https://example.com/blog/sitemap.xml"));
 
     let archive = t.get("/blog/archive").await;
     assert!(archive.body.contains("Hello, World!"));
@@ -231,18 +286,37 @@ async fn drafts_and_scheduled_articles_stay_private() {
     let res = t
         .post_form(
             "/blog/admin/articles",
-            &[("_csrf", &t.csrf), ("title", "Secret draft"), ("content", "x"), ("action", "draft")],
+            &[
+                ("_csrf", &t.csrf),
+                ("title", "Secret draft"),
+                ("content", "x"),
+                ("action", "draft"),
+            ],
         )
         .await;
     assert_eq!(res.location(), "/blog/admin/articles/1/edit?notice=saved");
-    assert_eq!(t.get("/blog/posts/secret-draft").await.status, StatusCode::NOT_FOUND);
+    assert_eq!(
+        t.get("/blog/posts/secret-draft").await.status,
+        StatusCode::NOT_FOUND
+    );
     assert!(!t.get("/blog/").await.body.contains("Secret draft"));
 
     let res = t
-        .create_article("Future post", "soon", &[("published_at", "2999-01-01T09:00"), ("tz_offset", "0")])
+        .create_article(
+            "Future post",
+            "soon",
+            &[("published_at", "2999-01-01T09:00"), ("tz_offset", "0")],
+        )
         .await;
-    assert!(res.location().ends_with("notice=scheduled"), "{}", res.location());
-    assert_eq!(t.get("/blog/posts/future-post").await.status, StatusCode::NOT_FOUND);
+    assert!(
+        res.location().ends_with("notice=scheduled"),
+        "{}",
+        res.location()
+    );
+    assert_eq!(
+        t.get("/blog/posts/future-post").await.status,
+        StatusCode::NOT_FOUND
+    );
     assert!(!t.get("/blog/feed.xml").await.body.contains("Future post"));
 
     let list = t.get("/blog/admin/articles?status=scheduled").await;
@@ -277,14 +351,25 @@ async fn renamed_slugs_redirect() {
     let old = t.get("/blog/posts/original-title").await;
     assert_eq!(old.status, StatusCode::PERMANENT_REDIRECT);
     assert_eq!(old.location(), "/blog/posts/better-slug");
-    assert_eq!(t.get("/blog/posts/better-slug").await.status, StatusCode::OK);
+    assert_eq!(
+        t.get("/blog/posts/better-slug").await.status,
+        StatusCode::OK
+    );
 
     // A new article may take over a retired slug; duplicates get a suffix.
     t.create_article("Original title", "again", &[]).await;
-    assert_eq!(t.get("/blog/posts/original-title").await.status, StatusCode::OK);
+    assert_eq!(
+        t.get("/blog/posts/original-title").await.status,
+        StatusCode::OK
+    );
     t.create_article("Original title", "third", &[]).await;
-    assert_eq!(t.get("/blog/posts/original-title-2").await.status, StatusCode::OK);
-    let dup = t.create_article("Another", "x", &[("slug", "better-slug")]).await;
+    assert_eq!(
+        t.get("/blog/posts/original-title-2").await.status,
+        StatusCode::OK
+    );
+    let dup = t
+        .create_article("Another", "x", &[("slug", "better-slug")])
+        .await;
     assert_eq!(dup.status, StatusCode::UNPROCESSABLE_ENTITY);
     assert!(dup.body.contains("already used"));
 }
@@ -292,7 +377,12 @@ async fn renamed_slugs_redirect() {
 #[tokio::test]
 async fn forms_are_protected() {
     let t = TestApp::ready().await;
-    let no_token = t.post_form("/blog/admin/articles", &[("title", "x"), ("action", "publish")]).await;
+    let no_token = t
+        .post_form(
+            "/blog/admin/articles",
+            &[("title", "x"), ("action", "publish")],
+        )
+        .await;
     assert_eq!(no_token.status, StatusCode::FORBIDDEN);
 
     let req = t
@@ -307,30 +397,61 @@ async fn forms_are_protected() {
     let res = res.await;
     assert_eq!(res.headers[header::X_CONTENT_TYPE_OPTIONS], "nosniff");
     assert!(res.headers.contains_key(header::CONTENT_SECURITY_POLICY));
-    assert_eq!(t.get("/blog/admin").await.headers[header::CACHE_CONTROL], "no-store");
+    assert_eq!(
+        t.get("/blog/admin").await.headers[header::CACHE_CONTROL],
+        "no-store"
+    );
 
-    assert_eq!(t.get("/blog/media/..%2fquill.db").await.status, StatusCode::NOT_FOUND);
+    assert_eq!(
+        t.get("/blog/media/..%2fquill.db").await.status,
+        StatusCode::NOT_FOUND
+    );
 }
 
 #[tokio::test]
 async fn login_logout_and_throttling() {
     let mut t = TestApp::ready().await;
-    let res = t.post_form("/blog/admin/logout", &[("_csrf", &t.csrf)]).await;
+    let res = t
+        .post_form("/blog/admin/logout", &[("_csrf", &t.csrf)])
+        .await;
     assert_eq!(res.location(), "/blog/admin/login");
-    assert_eq!(t.get("/blog/admin").await.location(), "/blog/admin/login", "session revoked");
+    assert_eq!(
+        t.get("/blog/admin").await.location(),
+        "/blog/admin/login",
+        "session revoked"
+    );
 
     t.cookie = None;
-    let bad = t.post_form("/blog/admin/login", &[("username", "admin"), ("password", "wrong")]).await;
+    let bad = t
+        .post_form(
+            "/blog/admin/login",
+            &[("username", "admin"), ("password", "wrong")],
+        )
+        .await;
     assert_eq!(bad.status, StatusCode::UNAUTHORIZED);
-    let good = t.post_form("/blog/admin/login", &[("username", "ADMIN"), ("password", PASSWORD)]).await;
+    let good = t
+        .post_form(
+            "/blog/admin/login",
+            &[("username", "ADMIN"), ("password", PASSWORD)],
+        )
+        .await;
     assert_eq!(good.status, StatusCode::SEE_OTHER);
     t.take_cookie(&good);
     assert_eq!(t.get("/blog/admin").await.status, StatusCode::OK);
 
     for _ in 0..5 {
-        t.post_form("/blog/admin/login", &[("username", "admin"), ("password", "nope")]).await;
+        t.post_form(
+            "/blog/admin/login",
+            &[("username", "admin"), ("password", "nope")],
+        )
+        .await;
     }
-    let blocked = t.post_form("/blog/admin/login", &[("username", "admin"), ("password", PASSWORD)]).await;
+    let blocked = t
+        .post_form(
+            "/blog/admin/login",
+            &[("username", "admin"), ("password", PASSWORD)],
+        )
+        .await;
     assert_eq!(blocked.status, StatusCode::UNAUTHORIZED);
     assert!(blocked.body.contains("Too many failed attempts"));
 }
@@ -341,26 +462,52 @@ async fn every_theme_renders_every_page() {
     t.create_article(
         "Covered",
         "Some *text*.\n\n```rust\nfn main() {}\n```",
-        &[("tags", "one"), ("cover_image", "/media/abc.png"), ("excerpt", "A dek.")],
+        &[
+            ("tags", "one"),
+            ("cover_image", "/media/abc.png"),
+            ("excerpt", "A dek."),
+        ],
     )
     .await;
-    t.create_article("Plain", "More text.", &[("tags", "two")]).await;
+    t.create_article("Plain", "More text.", &[("tags", "two")])
+        .await;
     for theme in quill::themes::ALL {
-        let res = t.post_form("/blog/admin/themes", &[("_csrf", &t.csrf), ("theme", theme.id)]).await;
+        let res = t
+            .post_form(
+                "/blog/admin/themes",
+                &[("_csrf", &t.csrf), ("theme", theme.id)],
+            )
+            .await;
         assert_eq!(res.location(), "/blog/admin/themes?notice=theme");
-        for path in ["/blog/", "/blog/posts/covered", "/blog/posts/plain", "/blog/tags/one", "/blog/archive"] {
+        for path in [
+            "/blog/",
+            "/blog/posts/covered",
+            "/blog/posts/plain",
+            "/blog/tags/one",
+            "/blog/archive",
+        ] {
             let page = t.get(path).await;
             assert_eq!(page.status, StatusCode::OK, "{} {path}", theme.id);
-            assert!(page.body.contains(&format!("/static/themes/{}.css", theme.id)), "{} {path}", theme.id);
+            assert!(
+                page.body
+                    .contains(&format!("/static/themes/{}.css", theme.id)),
+                "{} {path}",
+                theme.id
+            );
         }
         assert_eq!(t.get("/blog/nowhere").await.status, StatusCode::NOT_FOUND);
-        let preview = t.get(&format!("/blog/admin/themes/{}/preview", theme.id)).await;
+        let preview = t
+            .get(&format!("/blog/admin/themes/{}/preview", theme.id))
+            .await;
         assert_eq!(preview.status, StatusCode::OK);
         assert!(preview.body.contains("Previewing"));
     }
     let css = t.get("/blog/static/themes/gazette.css").await;
     assert_eq!(css.status, StatusCode::OK);
-    assert!(css.headers[header::CONTENT_TYPE].to_str().unwrap().starts_with("text/css"));
+    assert!(css.headers[header::CONTENT_TYPE]
+        .to_str()
+        .unwrap()
+        .starts_with("text/css"));
 }
 
 #[tokio::test]
@@ -383,19 +530,34 @@ async fn dashboard_pages_render() {
     }
     let integration = t.get("/blog/admin/integration").await;
     assert!(integration.body.contains("location /blog/ {"));
-    assert_eq!(t.get("/blog/admin/articles/99/edit").await.status, StatusCode::NOT_FOUND);
+    assert_eq!(
+        t.get("/blog/admin/articles/99/edit").await.status,
+        StatusCode::NOT_FOUND
+    );
 
     let preview = t
-        .post_form("/blog/admin/preview", &[("_csrf", &t.csrf), ("content", "**bold** <script>x</script>")])
+        .post_form(
+            "/blog/admin/preview",
+            &[
+                ("_csrf", &t.csrf),
+                ("content", "**bold** <script>x</script>"),
+            ],
+        )
         .await;
     assert_eq!(preview.body.trim(), "<p><strong>bold</strong> </p>");
 
     let full = t
-        .post_form("/blog/admin/articles/preview", &[("_csrf", &t.csrf), ("title", "Unsaved"), ("content", "hi")])
+        .post_form(
+            "/blog/admin/articles/preview",
+            &[("_csrf", &t.csrf), ("title", "Unsaved"), ("content", "hi")],
+        )
         .await;
     assert_eq!(full.status, StatusCode::OK);
     assert!(full.body.contains("been saved"));
-    assert_eq!(t.get("/blog/posts/unsaved").await.status, StatusCode::NOT_FOUND);
+    assert_eq!(
+        t.get("/blog/posts/unsaved").await.status,
+        StatusCode::NOT_FOUND
+    );
 }
 
 #[tokio::test]
@@ -438,7 +600,13 @@ async fn upload_and_delete_media() {
     let png: &[u8] = b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR\0\0\0\x01\0\0\0\x01\x08\x06\0\0\0\x1f\x15\xc4\x89\0\0\0\rIDATx\x9cc\xf8\x0f\0\0\x01\x01\0\x05\x18\xd8N\0\0\0\0IEND\xaeB`\x82";
     let boundary = "XBOUNDARYX";
     let mut body = Vec::new();
-    body.extend_from_slice(format!("--{boundary}\r\nContent-Disposition: form-data; name=\"_csrf\"\r\n\r\n{}\r\n", t.csrf).as_bytes());
+    body.extend_from_slice(
+        format!(
+            "--{boundary}\r\nContent-Disposition: form-data; name=\"_csrf\"\r\n\r\n{}\r\n",
+            t.csrf
+        )
+        .as_bytes(),
+    );
     body.extend_from_slice(
         format!("--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"dot.png\"\r\nContent-Type: image/png\r\n\r\n").as_bytes(),
     );
@@ -446,7 +614,10 @@ async fn upload_and_delete_media() {
     body.extend_from_slice(format!("\r\n--{boundary}--\r\n").as_bytes());
     let req = t
         .builder(Method::POST, "/blog/admin/media")
-        .header(header::CONTENT_TYPE, format!("multipart/form-data; boundary={boundary}"))
+        .header(
+            header::CONTENT_TYPE,
+            format!("multipart/form-data; boundary={boundary}"),
+        )
         .header(header::ACCEPT, "application/json")
         .body(Body::from(body))
         .unwrap();
@@ -460,7 +631,9 @@ async fn upload_and_delete_media() {
     assert_eq!(file.status, StatusCode::OK);
     assert_eq!(file.headers[header::CONTENT_TYPE], "image/png");
 
-    let res = t.post_form("/blog/admin/media/1/delete", &[("_csrf", &t.csrf)]).await;
+    let res = t
+        .post_form("/blog/admin/media/1/delete", &[("_csrf", &t.csrf)])
+        .await;
     assert_eq!(res.status, StatusCode::SEE_OTHER);
     assert_eq!(t.get(url).await.status, StatusCode::NOT_FOUND);
 }

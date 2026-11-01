@@ -30,21 +30,54 @@ pub struct OriginalPath(pub String);
 pub fn app(state: AppState) -> Router {
     let admin = Router::new()
         .route("/admin", get(admin::dashboard::dashboard))
-        .route("/admin/setup", get(admin::setup::setup_form).post(admin::setup::setup_submit))
-        .route("/admin/login", get(admin::login::login_form).post(admin::login::login_submit))
+        .route(
+            "/admin/setup",
+            get(admin::setup::setup_form).post(admin::setup::setup_submit),
+        )
+        .route(
+            "/admin/login",
+            get(admin::login::login_form).post(admin::login::login_submit),
+        )
         .route("/admin/logout", post(admin::login::logout))
-        .route("/admin/articles", get(admin::articles::articles).post(admin::articles::create_article))
+        .route(
+            "/admin/articles",
+            get(admin::articles::articles).post(admin::articles::create_article),
+        )
         .route("/admin/articles/new", get(admin::articles::new_article))
-        .route("/admin/articles/preview", post(admin::articles::preview_article))
-        .route("/admin/articles/{id}", post(admin::articles::update_article))
-        .route("/admin/articles/{id}/edit", get(admin::articles::edit_article))
-        .route("/admin/articles/{id}/delete", post(admin::articles::delete_article))
+        .route(
+            "/admin/articles/preview",
+            post(admin::articles::preview_article),
+        )
+        .route(
+            "/admin/articles/{id}",
+            post(admin::articles::update_article),
+        )
+        .route(
+            "/admin/articles/{id}/edit",
+            get(admin::articles::edit_article),
+        )
+        .route(
+            "/admin/articles/{id}/delete",
+            post(admin::articles::delete_article),
+        )
         .route("/admin/preview", post(admin::articles::preview_markdown))
-        .route("/admin/themes", get(admin::appearance::themes).post(admin::appearance::activate_theme))
-        .route("/admin/themes/{id}/preview", get(admin::appearance::preview_theme))
-        .route("/admin/settings", get(admin::settings::settings_form).post(admin::settings::settings_submit))
+        .route(
+            "/admin/themes",
+            get(admin::appearance::themes).post(admin::appearance::activate_theme),
+        )
+        .route(
+            "/admin/themes/{id}/preview",
+            get(admin::appearance::preview_theme),
+        )
+        .route(
+            "/admin/settings",
+            get(admin::settings::settings_form).post(admin::settings::settings_submit),
+        )
         .route("/admin/integration", get(admin::integration::integration))
-        .route("/admin/account", get(admin::account::account_form).post(admin::account::account_submit))
+        .route(
+            "/admin/account",
+            get(admin::account::account_form).post(admin::account::account_submit),
+        )
         .route(
             "/admin/media",
             get(admin::media::media)
@@ -52,7 +85,10 @@ pub fn app(state: AppState) -> Router {
                 .layer(DefaultBodyLimit::max(MAX_UPLOAD_BYTES + 64 * 1024)),
         )
         .route("/admin/media/{id}/delete", post(admin::media::delete_media))
-        .layer(SetResponseHeaderLayer::overriding(header::CACHE_CONTROL, HeaderValue::from_static("no-store")))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::CACHE_CONTROL,
+            HeaderValue::from_static("no-store"),
+        ))
         .layer(SetResponseHeaderLayer::overriding(
             header::HeaderName::from_static("x-robots-tag"),
             HeaderValue::from_static("noindex, nofollow"),
@@ -112,7 +148,9 @@ async fn strip_base_path(State(state): State<AppState>, mut req: Request, next: 
         let stripped = if path == base {
             Some("/".to_string())
         } else {
-            path.strip_prefix(&base).filter(|rest| rest.starts_with('/')).map(str::to_string)
+            path.strip_prefix(&base)
+                .filter(|rest| rest.starts_with('/'))
+                .map(str::to_string)
         };
         if let Some(stripped) = stripped {
             let pq = match req.uri().query() {
@@ -135,7 +173,11 @@ async fn check_origin(req: Request, next: Next) -> Response {
     if matches!(*req.method(), Method::GET | Method::HEAD | Method::OPTIONS) {
         return next.run(req).await;
     }
-    if let Some(origin) = req.headers().get(header::ORIGIN).and_then(|v| v.to_str().ok()) {
+    if let Some(origin) = req
+        .headers()
+        .get(header::ORIGIN)
+        .and_then(|v| v.to_str().ok())
+    {
         let origin_host = origin.split_once("://").map(|(_, h)| h).unwrap_or("");
         let host = request_host(req.headers());
         if origin == "null" || host.is_none_or(|h| !h.eq_ignore_ascii_case(origin_host)) {
@@ -157,7 +199,11 @@ pub fn request_host(headers: &HeaderMap) -> Option<&str> {
 
 /// `scheme://host` as seen by the browser.
 pub fn request_origin(headers: &HeaderMap) -> Option<String> {
-    let scheme = if crate::auth::is_https(headers) { "https" } else { "http" };
+    let scheme = if crate::auth::is_https(headers) {
+        "https"
+    } else {
+        "http"
+    };
     request_host(headers).map(|h| format!("{scheme}://{}", h.to_ascii_lowercase()))
 }
 

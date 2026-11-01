@@ -18,7 +18,11 @@ use crate::themes;
 
 use super::{admin_context, notice_text, redirect, render, NoticeQuery};
 
-pub async fn themes(State(state): State<AppState>, user: AdminUser, Query(q): Query<NoticeQuery>) -> AppResult<Response> {
+pub async fn themes(
+    State(state): State<AppState>,
+    user: AdminUser,
+    Query(q): Query<NoticeQuery>,
+) -> AppResult<Response> {
     let s = state.settings();
     let mut ctx = admin_context(&s, Some(&user), "themes");
     ctx.insert(
@@ -41,7 +45,11 @@ pub struct ThemeForm {
     theme: String,
 }
 
-pub async fn activate_theme(State(state): State<AppState>, user: AdminUser, Form(form): Form<ThemeForm>) -> AppResult<Response> {
+pub async fn activate_theme(
+    State(state): State<AppState>,
+    user: AdminUser,
+    Form(form): Form<ThemeForm>,
+) -> AppResult<Response> {
     if let Err(r) = user.check_csrf(&form.csrf) {
         return Ok(r);
     }
@@ -56,7 +64,11 @@ pub async fn activate_theme(State(state): State<AppState>, user: AdminUser, Form
 
 /// The home page rendered with any theme. Uses sample articles while the blog
 /// has nothing published, so empty installs still get a meaningful preview.
-pub async fn preview_theme(State(state): State<AppState>, _user: AdminUser, Path(id): Path<String>) -> AppResult<Response> {
+pub async fn preview_theme(
+    State(state): State<AppState>,
+    _user: AdminUser,
+    Path(id): Path<String>,
+) -> AppResult<Response> {
     let s = state.settings();
     let Some(theme) = themes::find(&id) else {
         return Ok((StatusCode::NOT_FOUND, "Unknown theme.").into_response());
@@ -70,12 +82,18 @@ pub async fn preview_theme(State(state): State<AppState>, _user: AdminUser, Path
     };
     ctx.insert("articles".into(), json!(views));
     ctx.insert("pagination".into(), json!({"current": 1, "total": 1}));
-    ctx.insert("page_title".into(), json!(format!("{} theme preview — {}", theme.name, s.site_name)));
+    ctx.insert(
+        "page_title".into(),
+        json!(format!("{} theme preview — {}", theme.name, s.site_name)),
+    );
     ctx.insert("is_home".into(), json!(true));
     ctx.insert("preview".into(), json!(true));
     ctx.insert(
         "preview_label".into(),
-        json!(format!("Previewing the {} theme. Visitors still see your current theme.", theme.name)),
+        json!(format!(
+            "Previewing the {} theme. Visitors still see your current theme.",
+            theme.name
+        )),
     );
     ctx.insert("noindex".into(), json!(true));
     Ok(public::render_page(&state, theme.id, "index", &ctx)?.into_response())

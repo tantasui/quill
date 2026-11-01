@@ -24,13 +24,21 @@ pub fn detect_image(bytes: &[u8]) -> Option<(&'static str, &'static str)> {
         [0x89, b'P', b'N', b'G', ..] => Some(("png", "image/png")),
         [0xFF, 0xD8, 0xFF, ..] => Some(("jpg", "image/jpeg")),
         [b'G', b'I', b'F', b'8', ..] => Some(("gif", "image/gif")),
-        [b'R', b'I', b'F', b'F', _, _, _, _, b'W', b'E', b'B', b'P', ..] => Some(("webp", "image/webp")),
-        [_, _, _, _, b'f', b't', b'y', b'p', b'a', b'v', b'i', b'f', ..] => Some(("avif", "image/avif")),
+        [b'R', b'I', b'F', b'F', _, _, _, _, b'W', b'E', b'B', b'P', ..] => {
+            Some(("webp", "image/webp"))
+        }
+        [_, _, _, _, b'f', b't', b'y', b'p', b'a', b'v', b'i', b'f', ..] => {
+            Some(("avif", "image/avif"))
+        }
         _ => None,
     }
 }
 
-pub async fn media(State(state): State<AppState>, user: AdminUser, Query(q): Query<NoticeQuery>) -> AppResult<Response> {
+pub async fn media(
+    State(state): State<AppState>,
+    user: AdminUser,
+    Query(q): Query<NoticeQuery>,
+) -> AppResult<Response> {
     let s = state.settings();
     let files = models::list_media(&state.db).await?;
     let mut used = std::collections::HashSet::new();
@@ -67,13 +75,22 @@ fn upload_error(wants_json: bool, status: StatusCode, msg: &str) -> Response {
     }
 }
 
-pub async fn upload_media(State(state): State<AppState>, user: AdminUser, headers: HeaderMap, mut multipart: Multipart) -> AppResult<Response> {
+pub async fn upload_media(
+    State(state): State<AppState>,
+    user: AdminUser,
+    headers: HeaderMap,
+    mut multipart: Multipart,
+) -> AppResult<Response> {
     let s = state.settings();
     let wants_json = headers
         .get(header::ACCEPT)
         .and_then(|v| v.to_str().ok())
         .is_some_and(|v| v.contains("application/json"));
-    let mut csrf = headers.get("x-csrf-token").and_then(|v| v.to_str().ok()).unwrap_or_default().to_string();
+    let mut csrf = headers
+        .get("x-csrf-token")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or_default()
+        .to_string();
     let mut file: Option<(String, axum::body::Bytes)> = None;
     loop {
         let field = match multipart.next_field().await {
@@ -81,7 +98,10 @@ pub async fn upload_media(State(state): State<AppState>, user: AdminUser, header
             Ok(None) => break,
             Err(e) => {
                 let msg = if e.status() == StatusCode::PAYLOAD_TOO_LARGE {
-                    format!("That file is too large. The limit is {} MB.", MAX_UPLOAD_BYTES >> 20)
+                    format!(
+                        "That file is too large. The limit is {} MB.",
+                        MAX_UPLOAD_BYTES >> 20
+                    )
                 } else {
                     "The upload was interrupted. Please try again.".to_string()
                 };
@@ -110,13 +130,20 @@ pub async fn upload_media(State(state): State<AppState>, user: AdminUser, header
         return Ok(r);
     }
     let Some((original_name, bytes)) = file.filter(|(_, b)| !b.is_empty()) else {
-        return Ok(upload_error(wants_json, StatusCode::BAD_REQUEST, "Choose a file to upload."));
+        return Ok(upload_error(
+            wants_json,
+            StatusCode::BAD_REQUEST,
+            "Choose a file to upload.",
+        ));
     };
     if bytes.len() > MAX_UPLOAD_BYTES {
         return Ok(upload_error(
             wants_json,
             StatusCode::PAYLOAD_TOO_LARGE,
-            &format!("That file is too large. The limit is {} MB.", MAX_UPLOAD_BYTES >> 20),
+            &format!(
+                "That file is too large. The limit is {} MB.",
+                MAX_UPLOAD_BYTES >> 20
+            ),
         ));
     }
     let Some((ext, mime)) = detect_image(&bytes) else {
@@ -129,7 +156,11 @@ pub async fn upload_media(State(state): State<AppState>, user: AdminUser, header
     let filename = format!("{}.{ext}", auth::random_hex(12));
     tokio::fs::create_dir_all(state.media_dir()).await?;
     tokio::fs::write(state.media_dir().join(&filename), &bytes).await?;
-    let original_name: String = original_name.chars().filter(|c| !c.is_control()).take(200).collect();
+    let original_name: String = original_name
+        .chars()
+        .filter(|c| !c.is_control())
+        .take(200)
+        .collect();
     sqlx::query("INSERT INTO media (filename, original_name, content_type, size, created_at) VALUES (?, ?, ?, ?, ?)")
         .bind(&filename)
         .bind(&original_name)
@@ -146,7 +177,12 @@ pub async fn upload_media(State(state): State<AppState>, user: AdminUser, header
     }
 }
 
-pub async fn delete_media(State(state): State<AppState>, user: AdminUser, Path(id): Path<i64>, Form(form): Form<CsrfForm>) -> AppResult<Response> {
+pub async fn delete_media(
+    State(state): State<AppState>,
+    user: AdminUser,
+    Path(id): Path<i64>,
+    Form(form): Form<CsrfForm>,
+) -> AppResult<Response> {
     if let Err(r) = user.check_csrf(&form.csrf) {
         return Ok(r);
     }
@@ -160,9 +196,15 @@ pub async fn delete_media(State(state): State<AppState>, user: AdminUser, Path(i
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
             Err(e) => return Err(e.into()),
         }
-        sqlx::query("DELETE FROM media WHERE id = ?").bind(id).execute(&state.db).await?;
+        sqlx::query("DELETE FROM media WHERE id = ?")
+            .bind(id)
+            .execute(&state.db)
+            .await?;
     }
-    Ok(redirect(&state.settings(), "/admin/media?notice=media_deleted"))
+    Ok(redirect(
+        &state.settings(),
+        "/admin/media?notice=media_deleted",
+    ))
 }
 
 #[cfg(test)]

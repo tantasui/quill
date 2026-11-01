@@ -1,0 +1,13 @@
+{% import "public/_macros.html" as m %}
+<ol class="post-cards">
+  {% for a in feed_articles %}
+  <li class="post-card">
+    {% if a.cover_image %}<a class="post-card-cover" href="{{ a.url }}" tabindex="-1" aria-hidden="true"><img src="{{ a.cover_image }}" alt="" loading="lazy"></a>{% endif %}
+    <div class="post-card-body">
+      <h2 class="post-title"><a href="{{ a.url }}">{{ a.title }}</a></h2>
+      {{ m.meta(a) }}
+      {% if a.excerpt %}<p class="post-excerpt">{{ a.excerpt }}</p>{% endif %}
+    </div>
+  </li>
+  {% endfor %}
+</ol>

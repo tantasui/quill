@@ -1,30 +1,7 @@
-/* Devlog — a modern developer blog with monospace details and a tag sidebar. */
+/* Devlog finishing touches: a modern developer blog with monospace details. */
 body { font-size: 1rem; }
 
-.topbar { border-bottom: 1px solid var(--border); background: var(--bg); }
-.topbar-inner {
-  max-width: 72rem; margin: 0 auto; padding: 0.9rem 1.25rem;
-  display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
-}
-.logo { font-family: var(--font-mono); font-weight: 700; font-size: 1rem; color: var(--text); text-decoration: none; }
-.logo-prompt { color: var(--accent-text); }
-.topnav { display: flex; gap: 1.25rem; font-family: var(--font-mono); font-size: 0.875rem; }
-.topnav a { color: var(--muted); text-decoration: none; }
-.topnav a:hover { color: var(--accent-text); }
-
-.layout {
-  max-width: 72rem; margin: 0 auto; padding: 2.5rem 1.25rem 0;
-  display: grid; grid-template-columns: minmax(0, 1fr) 15rem; gap: 4rem;
-}
-.content { min-width: 0; max-width: var(--measure); }
-
-.sidebar { font-size: 0.9rem; color: var(--muted); }
-.side-block + .side-block { margin-top: 2rem; }
-.side-title {
-  font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
-  letter-spacing: 0.08em; color: var(--muted); margin: 0 0 0.6rem;
-}
-.side-block p { margin: 0; }
+.logo-prompt { display: inline; color: var(--accent-text); }
 
 .tag {
   display: inline-flex; align-items: center; padding: 0.15rem 0.55rem; border-radius: 999px;
@@ -33,19 +10,10 @@ body { font-size: 1rem; }
 }
 .tag:hover { text-decoration: underline; }
 
-/* Home: compact rows with an ISO date column. */
-.post-rows { list-style: none; margin: 0; padding: 0; }
-.post-row {
-  display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: 1.25rem;
-  padding: 1.4rem 0; border-bottom: 1px solid var(--border);
-}
-.post-row:first-child { padding-top: 0; }
-.post-row-date { font-family: var(--font-mono); font-size: 0.85rem; color: var(--muted); padding-top: 0.2rem; font-variant-numeric: tabular-nums; }
 .post-title { font-size: 1.2rem; line-height: 1.35; margin: 0; font-weight: 650; letter-spacing: -0.01em; }
 .post-title a { color: var(--text); text-decoration: none; }
 .post-title a:hover { color: var(--accent-text); }
 .post-excerpt { margin: 0.4rem 0 0; color: var(--muted); }
-.post-row-meta { margin: 0.6rem 0 0; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); }
 
 /* Shared post list (tag pages). */
 .post-list { list-style: none; margin: 0; padding: 0; }
@@ -82,19 +50,4 @@ body { font-size: 1rem; }
 .archive-list a { color: var(--text); text-decoration: none; }
 .archive-list a:hover { color: var(--accent-text); }
 
-.empty code { font-family: var(--font-mono); }
-
-.footer {
-  max-width: 72rem; margin: 4rem auto 0; padding: 1.5rem 1.25rem 2.5rem;
-  border-top: 1px solid var(--border); color: var(--muted); font-size: 0.85rem; font-family: var(--font-mono);
-}
-.footer p { margin: 0; }
-
-@media (max-width: 56rem) {
-  .layout { grid-template-columns: minmax(0, 1fr); gap: 3rem; padding-top: 1.75rem; }
-  .sidebar { border-top: 1px solid var(--border); padding-top: 2rem; }
-}
-
-@media (max-width: 34rem) {
-  .post-row { grid-template-columns: 1fr; gap: 0.25rem; }
-}
+.site-footer { font-family: var(--font-mono); }

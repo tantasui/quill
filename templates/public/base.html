@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="{{ site.language }}">
+<head>
+{% include "public/_head.html" %}
+</head>
+<body class="preset-{{ theme }} width-{{ layout.page_width }} header-{{ layout.header.variant }} rail-{{ layout.tag_rail }}">
+{% include "public/_banner.html" %}
+<div class="frame">
+  {% include "public/components/header_" ~ layout.header.variant ~ ".html" %}
+  <div class="layout">
+    <main id="content" class="content">
+      {% block content %}{% endblock %}
+    </main>
+    {% if layout.tag_rail != "none" %}{% include "public/components/tag_rail.html" %}{% endif %}
+  </div>
+  {% include "public/components/footer_" ~ layout.footer.variant ~ ".html" %}
+</div>
+</body>
+</html>

@@ -68,10 +68,6 @@ impl Views {
         Views { env }
     }
 
-    pub fn exists(&self, name: &str) -> bool {
-        TemplateFiles::get(name).is_some()
-    }
-
     pub fn render(&self, name: &str, ctx: impl Serialize) -> Result<String> {
         let tmpl = self
             .env

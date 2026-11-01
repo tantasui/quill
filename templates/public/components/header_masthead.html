@@ -1,0 +1,9 @@
+<header class="masthead">
+  <div class="masthead-inner">
+    <a class="masthead-title" href="{{ base }}/">{{ site.name }}</a>
+    {% if site.description %}<p class="masthead-tagline">{{ site.description }}</p>{% endif %}
+  </div>
+  <nav class="sections" aria-label="Sections">
+    {% include "public/components/_nav_links.html" %}
+  </nav>
+</header>

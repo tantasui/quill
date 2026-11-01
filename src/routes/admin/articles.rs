@@ -441,13 +441,13 @@ pub async fn preview_article(
         })
         .collect();
     let mut ctx =
-        public::article_context_with_tags(&state, &s, &s.theme, &article, &tags, true).await?;
+        public::article_context_with_tags(&state, &s, &state.look(), &article, &tags, true).await?;
     ctx.insert(
         "preview_label".into(),
         json!("Preview — this is how the article will look. It hasn't been saved."),
     );
     ctx.insert("noindex".into(), json!(true));
-    Ok(public::render_page(&state, &s.theme, "article", &ctx)?.into_response())
+    Ok(public::render_page(&state, "article", &ctx)?.into_response())
 }
 
 #[derive(Deserialize, Default)]

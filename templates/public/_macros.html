@@ -1,11 +1,14 @@
-{# Shared building blocks for public templates. Themes may use or ignore them. #}
+{# Shared building blocks for the page and component templates. #}
 
-{% macro meta(a, show_author=false) %}
+{% macro meta(a, show_author=false, show_date=true, show_reading=true) %}
 <p class="post-meta">
-  <time datetime="{{ a.date_iso }}">{{ a.date }}</time>
-  <span class="sep" aria-hidden="true">·</span>
-  <span>{{ a.reading_minutes }} min read</span>
-  {% if show_author and a.author %}<span class="sep" aria-hidden="true">·</span> <span class="post-author">{{ a.author }}</span>{% endif %}
+  {% if show_date %}<time datetime="{{ a.date_iso }}">{{ a.date }}</time>
+  {% endif %}
+  {% if show_date and show_reading %}<span class="sep" aria-hidden="true">·</span>
+  {% endif %}
+  {% if show_reading %}<span>{{ a.reading_minutes }} min read</span>
+  {% endif %}
+  {% if show_author and a.author %}{% if show_date or show_reading %}<span class="sep" aria-hidden="true">·</span> {% endif %}<span class="post-author">{{ a.author }}</span>{% endif %}
 </p>
 {% endmacro %}
 

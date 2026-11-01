@@ -1,24 +1,9 @@
-/* Editorial — a quiet reading column with classic serif typography. */
+/* Editorial finishing touches: a quiet reading column with classic serif typography. */
 body { font-size: 1.0625rem; }
 
-.page { max-width: var(--measure); margin: 0 auto; padding: 0 1.25rem; }
+.content { min-height: 50vh; }
 
-.site-header {
-  text-align: center;
-  padding: 4.5rem 0 3rem;
-}
-.site-title {
-  font-size: 1.05rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
-  color: var(--text); text-decoration: none;
-}
-.site-tagline { margin: 0.6rem auto 0; color: var(--muted); font-style: italic; max-width: 28rem; }
-.site-nav { margin-top: 1.25rem; display: flex; justify-content: center; gap: 1.5rem; font-size: 0.95rem; }
-.site-nav a { color: var(--muted); text-decoration: none; }
-.site-nav a:hover { color: var(--accent-text); }
-
-.site-main { min-height: 50vh; }
-
-/* Home: a simple list of titles and excerpts. */
+/* Article lists */
 .post-list { list-style: none; margin: 0; padding: 0; }
 .post-item { padding: 2rem 0; border-top: 1px solid var(--border); }
 .post-item:first-child { border-top: 0; padding-top: 0; }
@@ -57,14 +42,9 @@ body { font-size: 1.0625rem; }
 .archive-list a { color: var(--text); text-decoration: none; }
 .archive-list a:hover { color: var(--accent-text); }
 
-.site-footer {
-  margin-top: 5rem; padding: 2rem 0 3rem; border-top: 1px solid var(--border);
-  text-align: center; color: var(--muted); font-size: 0.9rem;
-}
-.site-footer p { margin: 0; }
+.site-footer { margin-top: 5rem; padding-top: 2rem; padding-bottom: 3rem; text-align: center; font-size: 0.9rem; }
 
 @media (max-width: 34rem) {
-  .site-header { padding: 2.75rem 0 2rem; }
   .post-title { font-size: 1.4rem; }
   .prose { font-size: 1.1rem; }
 }

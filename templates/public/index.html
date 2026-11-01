@@ -1,12 +1,20 @@
-{% extends layout %}
+{% extends "public/base.html" %}
 {% import "public/_macros.html" as m %}
 {% block content %}
-{% if articles %}
-{{ m.post_list(articles) }}
+{% if lead or feed_articles %}
+{% for section in layout.home %}
+{% if section.type == "featured" %}
+{% if lead %}{% include "public/components/featured.html" %}{% endif %}
+{% elif section.type == "feed" %}
+{% if feed_articles %}{% include "public/components/feed_" ~ section.variant ~ ".html" %}{% endif %}
 {{ m.pagination(pagination) }}
+{% elif section.type == "archive_link" %}
+{% include "public/components/archive_link.html" %}
+{% endif %}
+{% endfor %}
 {% else %}
 <div class="empty">
-  <p>Nothing has been published here yet. Check back soon.</p>
+  <p>{{ layout.labels.empty_home }}</p>
 </div>
 {% endif %}
 {% endblock %}

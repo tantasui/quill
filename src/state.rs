@@ -3,14 +3,32 @@ use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
 use anyhow::Result;
+use quill_design::Layout;
 use sqlx::SqlitePool;
 
 use crate::auth::{self, LoginLimiter};
 use crate::render::Views;
 use crate::settings::Settings;
+use crate::themes::{self, Theme};
 
 #[derive(Clone)]
 pub struct AppState(Arc<Inner>);
+
+/// How the blog looks: which preset's tokens and stylesheet, on which layout.
+#[derive(Clone, Debug)]
+pub struct Look {
+    pub preset: String,
+    pub layout: Layout,
+}
+
+impl Look {
+    pub fn of_preset(preset: &Theme) -> Self {
+        Look {
+            preset: preset.id.to_string(),
+            layout: preset.layout().clone(),
+        }
+    }
+}
 
 pub struct Inner {
     pub db: SqlitePool,
@@ -54,6 +72,14 @@ impl AppState {
             settings: RwLock::new(settings),
             setup_code: RwLock::new(setup_code),
         })))
+    }
+
+    pub fn look(&self) -> Look {
+        let settings = self.settings();
+        let preset = themes::find(&settings.theme)
+            .or_else(|| themes::find(themes::DEFAULT))
+            .expect("the default preset exists");
+        Look::of_preset(preset)
     }
 
     pub fn settings(&self) -> Settings {

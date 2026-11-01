@@ -3,6 +3,7 @@ use axum::extract::{Path, Query, State};
 use axum::http::{header, StatusCode, Uri};
 use axum::response::{Html, IntoResponse, Redirect, Response};
 use chrono::{DateTime, Datelike, Utc};
+use quill_design::{HomeSection, Layout};
 use serde::Deserialize;
 use serde_json::{json, Map, Value};
 
@@ -10,14 +11,14 @@ use crate::error::AppResult;
 use crate::markdown;
 use crate::models::{self, Article, Tag};
 use crate::settings::Settings;
-use crate::state::AppState;
+use crate::state::{AppState, Look};
 
 use super::VERSION;
 
 type Ctx = Map<String, Value>;
 
 /// Values every public template can rely on (the template contract).
-pub async fn base_context(state: &AppState, s: &Settings, theme: &str) -> AppResult<Ctx> {
+pub async fn base_context(state: &AppState, s: &Settings, look: &Look) -> AppResult<Ctx> {
     let tags = models::public_tag_counts(&state.db, 15).await?;
     let mut ctx = Ctx::new();
     ctx.insert(
@@ -32,8 +33,8 @@ pub async fn base_context(state: &AppState, s: &Settings, theme: &str) -> AppRes
         }),
     );
     ctx.insert("base".into(), json!(s.base_path));
-    ctx.insert("theme".into(), json!(theme));
-    ctx.insert("layout".into(), json!(format!("themes/{theme}/base.html")));
+    ctx.insert("theme".into(), json!(look.preset));
+    ctx.insert("layout".into(), json!(look.layout));
     ctx.insert("version".into(), json!(VERSION));
     ctx.insert("feed_url".into(), json!(s.absolute("/feed.xml")));
     ctx.insert(
@@ -47,21 +48,20 @@ pub async fn base_context(state: &AppState, s: &Settings, theme: &str) -> AppRes
     Ok(ctx)
 }
 
-/// Renders a page with the theme's own template if it has one, otherwise the
-/// shared default.
-pub fn render_page(
-    state: &AppState,
-    theme: &str,
-    page: &str,
-    ctx: &Ctx,
-) -> AppResult<Html<String>> {
-    let themed = format!("themes/{theme}/{page}.html");
-    let name = if state.views.exists(&themed) {
-        themed
-    } else {
-        format!("public/{page}.html")
-    };
-    Ok(Html(state.views.render(&name, ctx)?))
+pub fn render_page(state: &AppState, page: &str, ctx: &Ctx) -> AppResult<Html<String>> {
+    Ok(Html(
+        state.views.render(&format!("public/{page}.html"), ctx)?,
+    ))
+}
+
+/// Splits articles between the home page's sections. A `featured` section takes
+/// the newest article, but only on the first page.
+pub fn insert_home_articles(ctx: &mut Ctx, layout: &Layout, views: Vec<Value>, first_page: bool) {
+    let mut views = views.into_iter();
+    if first_page && layout.home.contains(&HomeSection::Featured) {
+        ctx.insert("lead".into(), json!(views.next()));
+    }
+    ctx.insert("feed_articles".into(), json!(views.collect::<Vec<_>>()));
 }
 
 /// Resolves an article image reference to a URL, prefixing uploaded media
@@ -168,8 +168,7 @@ pub async fn home(
     Query(q): Query<PageQuery>,
 ) -> AppResult<Response> {
     let s = state.settings();
-    let theme = s.theme.clone();
-    render_home(&state, &s, &theme, q.page.unwrap_or(1)).await
+    render_home(&state, &s, q.page.unwrap_or(1)).await
 }
 
 pub async fn home_page(
@@ -177,20 +176,14 @@ pub async fn home_page(
     Path(n): Path<String>,
 ) -> AppResult<Response> {
     let s = state.settings();
-    let theme = s.theme.clone();
     match n.parse::<i64>() {
         Ok(1) => Ok(Redirect::permanent(&format!("{}/", s.base_path)).into_response()),
-        Ok(n) if n > 1 => render_home(&state, &s, &theme, n).await,
+        Ok(n) if n > 1 => render_home(&state, &s, n).await,
         _ => not_found_page(&state, &s).await,
     }
 }
 
-pub async fn render_home(
-    state: &AppState,
-    s: &Settings,
-    theme: &str,
-    page: i64,
-) -> AppResult<Response> {
+pub async fn render_home(state: &AppState, s: &Settings, page: i64) -> AppResult<Response> {
     if state.needs_setup() {
         let html = state.views.render(
             "public/setup_pending.html",
@@ -205,11 +198,10 @@ pub async fn render_home(
         return not_found_page(state, s).await;
     }
     let articles = models::list_published(&state.db, per_page, (page - 1) * per_page).await?;
-    let mut ctx = base_context(state, s, theme).await?;
-    ctx.insert(
-        "articles".into(),
-        json!(article_views(state, s, &articles).await?),
-    );
+    let look = state.look();
+    let mut ctx = base_context(state, s, &look).await?;
+    let views = article_views(state, s, &articles).await?;
+    insert_home_articles(&mut ctx, &look.layout, views, page == 1);
     ctx.insert(
         "pagination".into(),
         pagination(&s.base_path, page, total_pages),
@@ -226,7 +218,7 @@ pub async fn render_home(
     };
     seo(&mut ctx, title, &s.description, s.absolute(&path));
     ctx.insert("is_home".into(), json!(page == 1));
-    Ok(render_page(state, theme, "index", &ctx)?.into_response())
+    Ok(render_page(state, "index", &ctx)?.into_response())
 }
 
 // ---- Article --------------------------------------------------------------------
@@ -244,16 +236,15 @@ pub async fn article(
         }
         return not_found_page(&state, &s).await;
     };
-    let theme = s.theme.clone();
-    let ctx = article_context(&state, &s, &theme, &a, false).await?;
-    Ok(render_page(&state, &theme, "article", &ctx)?.into_response())
+    let ctx = article_context(&state, &s, &state.look(), &a, false).await?;
+    Ok(render_page(&state, "article", &ctx)?.into_response())
 }
 
 /// Context for the article page; also used by the dashboard's preview.
 pub async fn article_context(
     state: &AppState,
     s: &Settings,
-    theme: &str,
+    look: &Look,
     a: &Article,
     preview: bool,
 ) -> AppResult<Ctx> {
@@ -261,18 +252,18 @@ pub async fn article_context(
         .await?
         .remove(&a.id)
         .unwrap_or_default();
-    article_context_with_tags(state, s, theme, a, &tags, preview).await
+    article_context_with_tags(state, s, look, a, &tags, preview).await
 }
 
 pub async fn article_context_with_tags(
     state: &AppState,
     s: &Settings,
-    theme: &str,
+    look: &Look,
     a: &Article,
     tags: &[Tag],
     preview: bool,
 ) -> AppResult<Ctx> {
-    let mut ctx = base_context(state, s, theme).await?;
+    let mut ctx = base_context(state, s, look).await?;
     let view = article_view(s, a, tags, true);
     let description = if a.meta_description.trim().is_empty() {
         view["excerpt"].as_str().unwrap_or_default().to_string()
@@ -333,8 +324,7 @@ pub async fn tag(
     }
     let articles =
         models::list_published_by_tag(&state.db, tag.id, per_page, (page - 1) * per_page).await?;
-    let theme = s.theme.clone();
-    let mut ctx = base_context(&state, &s, &theme).await?;
+    let mut ctx = base_context(&state, &s, &state.look()).await?;
     let tag_path = format!("{}/tags/{}", s.base_path, tag.slug);
     ctx.insert(
         "tag".into(),
@@ -360,7 +350,7 @@ pub async fn tag(
         &description,
         s.absolute(&format!("/tags/{}", tag.slug)),
     );
-    Ok(render_page(&state, &theme, "tag", &ctx)?.into_response())
+    Ok(render_page(&state, "tag", &ctx)?.into_response())
 }
 
 pub async fn archive(State(state): State<AppState>) -> AppResult<Response> {
@@ -377,8 +367,7 @@ pub async fn archive(State(state): State<AppState>) -> AppResult<Response> {
             _ => years.push(json!({"year": year, "articles": [view]})),
         }
     }
-    let theme = s.theme.clone();
-    let mut ctx = base_context(&state, &s, &theme).await?;
+    let mut ctx = base_context(&state, &s, &state.look()).await?;
     ctx.insert("years".into(), json!(years));
     ctx.insert("total".into(), json!(articles.len()));
     seo(
@@ -387,7 +376,7 @@ pub async fn archive(State(state): State<AppState>) -> AppResult<Response> {
         &format!("Every article published on {}.", s.site_name),
         s.absolute("/archive"),
     );
-    Ok(render_page(&state, &theme, "archive", &ctx)?.into_response())
+    Ok(render_page(&state, "archive", &ctx)?.into_response())
 }
 
 // ---- Feeds and crawlers --------------------------------------------------------------
@@ -519,7 +508,7 @@ pub async fn not_found_page(state: &AppState, s: &Settings) -> AppResult<Respons
     if state.needs_setup() {
         return Ok((StatusCode::NOT_FOUND, "Not found").into_response());
     }
-    let mut ctx = base_context(state, s, &s.theme).await?;
+    let mut ctx = base_context(state, s, &state.look()).await?;
     ctx.insert(
         "page_title".into(),
         json!(format!("Page not found — {}", s.site_name)),
@@ -532,7 +521,7 @@ pub async fn not_found_page(state: &AppState, s: &Settings) -> AppResult<Respons
     );
     Ok((
         StatusCode::NOT_FOUND,
-        render_page(state, &s.theme, "not_found", &ctx)?,
+        render_page(state, "not_found", &ctx)?,
     )
         .into_response())
 }

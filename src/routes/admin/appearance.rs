@@ -13,7 +13,7 @@ use crate::error::AppResult;
 use crate::models::{self, Article, Tag};
 use crate::routes::public::{self, article_view};
 use crate::settings::Settings;
-use crate::state::AppState;
+use crate::state::{AppState, Look};
 use crate::themes;
 
 use super::{admin_context, notice_text, redirect, render, NoticeQuery};
@@ -74,13 +74,14 @@ pub async fn preview_theme(
         return Ok((StatusCode::NOT_FOUND, "Unknown theme.").into_response());
     };
     let articles = models::list_published(&state.db, s.posts_per_page, 0).await?;
-    let mut ctx = public::base_context(&state, &s, theme.id).await?;
+    let look = Look::of_preset(theme);
+    let mut ctx = public::base_context(&state, &s, &look).await?;
     let views = if articles.is_empty() {
         sample_articles(&s)
     } else {
         public::article_views(&state, &s, &articles).await?
     };
-    ctx.insert("articles".into(), json!(views));
+    public::insert_home_articles(&mut ctx, &look.layout, views, true);
     ctx.insert("pagination".into(), json!({"current": 1, "total": 1}));
     ctx.insert(
         "page_title".into(),
@@ -96,7 +97,7 @@ pub async fn preview_theme(
         )),
     );
     ctx.insert("noindex".into(), json!(true));
-    Ok(public::render_page(&state, theme.id, "index", &ctx)?.into_response())
+    Ok(public::render_page(&state, "index", &ctx)?.into_response())
 }
 
 fn sample_articles(s: &Settings) -> Vec<Value> {

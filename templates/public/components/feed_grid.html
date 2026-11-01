@@ -1,0 +1,12 @@
+{% import "public/_macros.html" as m %}
+<div class="story-grid">
+  {% for a in feed_articles %}
+  <article class="story">
+    {% if a.cover_image %}<a class="story-cover" href="{{ a.url }}" tabindex="-1" aria-hidden="true"><img src="{{ a.cover_image }}" alt="" loading="lazy"></a>{% endif %}
+    {% if a.tags %}<p class="kicker">{{ a.tags[0].name }}</p>{% endif %}
+    <h2 class="story-title"><a href="{{ a.url }}">{{ a.title }}</a></h2>
+    {% if a.excerpt %}<p class="story-excerpt">{{ a.excerpt }}</p>{% endif %}
+    {{ m.meta(a) }}
+  </article>
+  {% endfor %}
+</div>

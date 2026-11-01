@@ -174,7 +174,10 @@ mod tests {
             "a/b",
             "<script>",
         ] {
-            assert!(FontStack::parse(input).is_err(), "{input} should be rejected");
+            assert!(
+                FontStack::parse(input).is_err(),
+                "{input} should be rejected"
+            );
         }
         let long_name = "x".repeat(MAX_NAME_LEN + 1);
         assert!(FontStack::parse(&long_name).is_err());
@@ -188,7 +191,10 @@ mod tests {
         assert_eq!(FontWeight::parse("BOLD").unwrap().to_css(), "700");
         assert_eq!(FontWeight::parse("650").unwrap().to_css(), "650");
         for input in ["0", "1001", "heavy", "-1", "400; x"] {
-            assert!(FontWeight::parse(input).is_err(), "{input} should be rejected");
+            assert!(
+                FontWeight::parse(input).is_err(),
+                "{input} should be rejected"
+            );
         }
     }
 }

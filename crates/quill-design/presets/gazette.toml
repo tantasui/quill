@@ -1,0 +1,65 @@
+# Gazette: a traditional publication with a masthead, lead story and story grid.
+
+[tokens]
+font_body = 'Georgia, "Times New Roman", Times, serif'
+font_heading = '"Playfair Display", Didot, "Bodoni MT", "Times New Roman", Georgia, serif'
+font_mono = 'ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace'
+heading_weight = 700
+radius = "0"
+measure = "40rem"
+shadow = "none"
+
+[tokens.light]
+bg = "#fdfcf9"
+surface = "#f4f1ea"
+text = "#121212"
+muted = "#5a5750"
+border = "#d9d4c7"
+accent_fill = "#b3261e"
+on_accent = "#ffffff"
+accent_text = "#b3261e"
+code_bg = "#f1eee6"
+
+[tokens.dark]
+bg = "#161514"
+surface = "#1f1e1c"
+text = "#ecebe6"
+muted = "#a8a49a"
+border = "#3a3834"
+accent_fill = "#f08a7e"
+on_accent = "#161514"
+accent_text = "#f08a7e"
+code_bg = "#24231f"
+
+[layout]
+page_width = "wide"
+tag_rail = "none"
+
+[layout.header]
+variant = "masthead"
+nav_tags = 5
+
+[[layout.home]]
+type = "featured"
+
+[[layout.home]]
+type = "feed"
+variant = "grid"
+
+[layout.article]
+measure = "narrow"
+cover = "hero"
+show_author = true
+show_date = true
+show_reading_time = true
+
+[layout.footer]
+variant = "simple"
+show_title = true
+show_feed = true
+
+[layout.labels]
+home = "Front page"
+archive = "Archive"
+feed = "Feed"
+empty_home = "The first edition is on its way. Check back soon."

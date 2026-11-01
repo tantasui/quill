@@ -1,0 +1,60 @@
+# Editorial: a quiet reading column with classic serif typography.
+
+[tokens]
+font_body = '"Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Charter, "Bitstream Charter", Georgia, serif'
+font_heading = '"Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Charter, "Bitstream Charter", Georgia, serif'
+font_mono = 'ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace'
+heading_weight = 700
+radius = "6px"
+measure = "38rem"
+shadow = "none"
+
+[tokens.light]
+bg = "#fbfaf7"
+surface = "#f3f1ea"
+text = "#22201c"
+muted = "#6b665d"
+border = "#e4e0d6"
+accent_fill = "#9c3a1f"
+on_accent = "#ffffff"
+accent_text = "#9c3a1f"
+code_bg = "#f0ede4"
+
+[tokens.dark]
+bg = "#1b1a18"
+surface = "#24221f"
+text = "#e9e5dc"
+muted = "#a39d91"
+border = "#36332e"
+accent_fill = "#e89a7c"
+on_accent = "#1b1a18"
+accent_text = "#e89a7c"
+code_bg = "#2a2825"
+
+[layout]
+page_width = "narrow"
+tag_rail = "none"
+
+[layout.header]
+variant = "centered"
+nav_feed = true
+
+[[layout.home]]
+type = "feed"
+variant = "list"
+
+[layout.article]
+measure = "narrow"
+cover = "inline"
+show_author = true
+show_date = true
+show_reading_time = true
+
+[layout.footer]
+variant = "simple"
+
+[layout.labels]
+home = "Home"
+archive = "Archive"
+feed = "Feed"
+empty_home = "Nothing has been published here yet. Check back soon."

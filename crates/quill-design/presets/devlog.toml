@@ -1,0 +1,62 @@
+# Devlog: a modern developer blog with monospace details and a tag sidebar.
+
+[tokens]
+font_body = 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif'
+font_heading = 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif'
+font_mono = 'ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace'
+heading_weight = 700
+radius = "8px"
+measure = "46rem"
+shadow = "none"
+
+[tokens.light]
+bg = "#ffffff"
+surface = "#f6f8fa"
+text = "#1f2328"
+muted = "#59636e"
+border = "#e1e4e8"
+accent_fill = "#0b6bcb"
+on_accent = "#ffffff"
+accent_text = "#0b6bcb"
+code_bg = "#f6f8fa"
+accent_soft = "#e7f1fb"
+
+[tokens.dark]
+bg = "#0d1117"
+surface = "#151b23"
+text = "#e6edf3"
+muted = "#9198a1"
+border = "#262c36"
+accent_fill = "#58a6ff"
+on_accent = "#0d1117"
+accent_text = "#58a6ff"
+code_bg = "#151b23"
+accent_soft = "#14243a"
+
+[layout]
+page_width = "regular"
+tag_rail = "right"
+
+[layout.header]
+variant = "left"
+nav_feed = true
+
+[[layout.home]]
+type = "feed"
+variant = "compact"
+
+[layout.article]
+measure = "narrow"
+cover = "inline"
+show_author = true
+show_date = true
+show_reading_time = true
+
+[layout.footer]
+variant = "simple"
+
+[layout.labels]
+home = "posts"
+archive = "archive"
+feed = "rss"
+empty_home = "0 posts. Nothing published yet."

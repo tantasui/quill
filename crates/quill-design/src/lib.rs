@@ -7,8 +7,10 @@ mod color;
 mod error;
 mod font;
 mod length;
+mod shadow;
 
 pub use color::Color;
 pub use error::TokenError;
 pub use font::{FontStack, FontWeight};
 pub use length::{Length, Offset};
+pub use shadow::Shadow;

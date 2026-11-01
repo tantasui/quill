@@ -18,7 +18,8 @@ pub enum Shadow {
     },
 }
 
-const HELP: &str = "use `none`, or offsets, optional blur and spread, and a color, such as 0 1px 2px #00000020";
+const HELP: &str =
+    "use `none`, or offsets, optional blur and spread, and a color, such as 0 1px 2px #00000020";
 
 impl Shadow {
     pub fn parse(input: &str) -> Result<Self, TokenError> {

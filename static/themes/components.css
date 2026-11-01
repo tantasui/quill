@@ -109,6 +109,11 @@
 .lead-title a:hover, .story-title a:hover { color: var(--accent-text); }
 .lead-excerpt { font-size: 1.2rem; line-height: 1.55; margin: 0.9rem 0 0; color: var(--muted); }
 
+/* A feed right after a lead story needs space below its divider. */
+.lead-story + .post-rows .post-row:first-child,
+.lead-story + .post-list .post-item:first-child { padding-top: 1.75rem; }
+.lead-story + .post-cards { margin-top: 1.75rem; }
+
 /* ---- Home feed: grid ---- */
 .story-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-bottom: 1px solid var(--border); }
 .story { padding: 1.75rem 1.5rem; border-left: 1px solid var(--border); }

@@ -63,8 +63,17 @@ pub fn app(state: AppState) -> Router {
         )
         .route("/admin/preview", post(admin::articles::preview_markdown))
         .route(
+            "/admin/appearance",
+            get(admin::appearance::appearance).post(admin::appearance::save_layout),
+        )
+        .route(
+            "/admin/appearance/preview",
+            post(admin::appearance::preview_layout),
+        )
+        // The address from before this page was renamed still works.
+        .route(
             "/admin/themes",
-            get(admin::appearance::themes).post(admin::appearance::activate_theme),
+            get(admin::appearance::appearance).post(admin::appearance::activate_theme),
         )
         .route(
             "/admin/themes/{id}/preview",

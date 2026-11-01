@@ -785,3 +785,308 @@ async fn upgrading_a_0_1_database_keeps_content_and_takes_a_snapshot() {
         .await
         .unwrap();
 }
+
+const HEADERS: [&str; 3] = ["centered", "left", "masthead"];
+const WIDTHS: [&str; 3] = ["narrow", "regular", "wide"];
+const RAILS: [&str; 3] = ["left", "right", "none"];
+const FEEDS: [&str; 4] = ["list", "grid", "cards", "compact"];
+const MEASURES: [&str; 2] = ["narrow", "wide"];
+const COVERS: [&str; 3] = ["hero", "inline", "none"];
+const FOOTERS: [&str; 2] = ["simple", "columns"];
+
+/// A layout form with every required field, for the tests to adjust.
+fn layout_form<'a>(csrf: &'a str, overrides: &[(&'a str, &'a str)]) -> Vec<(&'a str, &'a str)> {
+    let mut fields = vec![
+        ("_csrf", csrf),
+        ("page_width", "regular"),
+        ("header_variant", "centered"),
+        ("tag_rail", "none"),
+        ("footer_variant", "simple"),
+        ("feed", "on"),
+        ("feed_order", "2"),
+        ("feed_variant", "list"),
+        ("article_measure", "narrow"),
+        ("article_cover", "inline"),
+        ("show_author", "on"),
+        ("show_date", "on"),
+        ("show_reading_time", "on"),
+    ];
+    for (name, value) in overrides {
+        fields.retain(|(field, _)| field != name);
+        fields.push((name, value));
+    }
+    fields
+}
+
+#[tokio::test]
+async fn the_layout_form_saves_and_orders_sections() {
+    let t = TestApp::ready().await;
+    t.create_article("Lead", "Text.", &[("tags", "one")]).await;
+    t.create_article("Second", "Text.", &[("tags", "one")])
+        .await;
+
+    let page = t.get("/blog/admin/appearance").await;
+    assert_eq!(page.status, StatusCode::OK);
+    assert!(page.body.contains("layout-preview"));
+
+    // The feed comes first and the lead story after it: the order is the user's.
+    let fields = layout_form(
+        &t.csrf,
+        &[
+            ("header_variant", "masthead"),
+            ("tag_rail", "left"),
+            ("feed_variant", "cards"),
+            ("feed_order", "1"),
+            ("featured", "on"),
+            ("featured_order", "2"),
+            ("archive_link", "on"),
+            ("archive_link_order", "3"),
+            ("show_date", ""),
+        ],
+    );
+    let res = t.post_form("/blog/admin/appearance", &fields).await;
+    assert_eq!(res.location(), "/blog/admin/appearance?notice=layout");
+
+    let home = t.get("/blog/").await.body;
+    assert!(home.contains("masthead-title"));
+    assert!(home.contains("rail-left"));
+    let (feed, lead, archive) = (
+        home.find("post-cards").unwrap(),
+        home.find("lead-story").unwrap(),
+        home.find("archive-link").unwrap(),
+    );
+    assert!(
+        feed < lead && lead < archive,
+        "sections follow the saved order"
+    );
+
+    let article = t.get("/blog/posts/second").await.body;
+    assert!(!article.contains("<time"), "the date can be hidden");
+    assert!(article.contains("min read"));
+
+    // The editor shows what was saved.
+    let page = t.get("/blog/admin/appearance").await.body;
+    assert!(page.contains("Active, customized"));
+    assert!(page.find(r#"data-section="feed""#) < page.find(r#"data-section="featured""#));
+}
+
+#[tokio::test]
+async fn the_layout_form_rejects_invalid_input_with_a_clear_error() {
+    let t = TestApp::ready().await;
+    let before = t.state.look().layout;
+    let cases: [(&[(&str, &str)], &str); 3] = [
+        (&[("header_variant", "zigzag")], "zigzag"),
+        (&[("feed_variant", "mosaic")], "mosaic"),
+        (&[("feed", "")], "needs a `feed` section"),
+    ];
+    for (overrides, expected) in cases {
+        let res = t
+            .post_form("/blog/admin/appearance", &layout_form(&t.csrf, overrides))
+            .await;
+        assert_eq!(res.status, StatusCode::UNPROCESSABLE_ENTITY, "{expected}");
+        assert!(res.body.contains(expected), "{expected}");
+    }
+    assert_eq!(t.state.look().layout, before, "nothing was saved");
+
+    let no_token = t
+        .post_form("/blog/admin/appearance", &layout_form("", &[]))
+        .await;
+    assert_eq!(no_token.status, StatusCode::FORBIDDEN);
+    let no_token = t
+        .post_form("/blog/admin/appearance/preview", &layout_form("", &[]))
+        .await;
+    assert_eq!(no_token.status, StatusCode::FORBIDDEN);
+}
+
+#[tokio::test]
+async fn previewing_a_layout_saves_nothing() {
+    let t = TestApp::ready().await;
+    let before = t.state.look().layout;
+
+    // With nothing published, previews fall back to sample content.
+    for page in ["home", "article"] {
+        let res = t
+            .post_form(
+                "/blog/admin/appearance/preview",
+                &layout_form(&t.csrf, &[("page", page), ("header_variant", "left")]),
+            )
+            .await;
+        assert_eq!(res.status, StatusCode::OK, "{page}: {}", res.body);
+        assert!(res.body.contains("Welcome to your new blog"), "{page}");
+        assert!(res.body.contains(r#"class="topbar""#), "{page}");
+        assert!(res.body.contains("been saved"), "{page}");
+    }
+    assert_eq!(t.state.look().layout, before);
+    assert!(!t.get("/blog/").await.body.contains(r#"class="topbar""#));
+}
+
+/// A small deterministic generator, so a failing combination can be reproduced.
+struct Sequence(u64);
+
+impl Sequence {
+    fn pick<'a>(&mut self, options: &[&'a str]) -> &'a str {
+        self.0 = self
+            .0
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
+        options[((self.0 >> 33) as usize) % options.len()]
+    }
+}
+
+#[tokio::test]
+async fn many_layout_combinations_render_on_every_page() {
+    let t = TestApp::ready().await;
+    t.create_article(
+        "Covered",
+        "Some *text*.",
+        &[("tags", "one"), ("cover_image", "/media/abc.png")],
+    )
+    .await;
+    t.create_article("Plain", "More text.", &[("tags", "one")])
+        .await;
+
+    let mut sequence = Sequence(2026);
+    for round in 0..250 {
+        let header = sequence.pick(&HEADERS);
+        let feed = sequence.pick(&FEEDS);
+        let fields = layout_form(
+            &t.csrf,
+            &[
+                ("header_variant", header),
+                ("page_width", sequence.pick(&WIDTHS)),
+                ("tag_rail", sequence.pick(&RAILS)),
+                ("feed_variant", feed),
+                ("article_measure", sequence.pick(&MEASURES)),
+                ("article_cover", sequence.pick(&COVERS)),
+                ("footer_variant", sequence.pick(&FOOTERS)),
+                ("featured", sequence.pick(&["on", ""])),
+                ("featured_order", sequence.pick(&["1", "3"])),
+                ("archive_link", sequence.pick(&["on", ""])),
+                ("archive_link_order", sequence.pick(&["1", "3"])),
+                ("show_author", sequence.pick(&["on", ""])),
+                ("show_date", sequence.pick(&["on", ""])),
+                ("show_reading_time", sequence.pick(&["on", ""])),
+            ],
+        );
+        let res = t.post_form("/blog/admin/appearance", &fields).await;
+        assert_eq!(
+            res.status,
+            StatusCode::SEE_OTHER,
+            "{fields:?}: {}",
+            res.body
+        );
+        for path in [
+            "/blog/",
+            "/blog/posts/covered",
+            "/blog/posts/plain",
+            "/blog/tags/one",
+            "/blog/archive",
+        ] {
+            let page = t.get(path).await;
+            assert_eq!(
+                page.status,
+                StatusCode::OK,
+                "round {round} {path} {fields:?}"
+            );
+            assert!(page.body.contains("</html>"), "round {round} {path}");
+            assert!(page.body.contains(&format!("header-{header}")));
+        }
+        assert_eq!(t.get("/blog/nowhere").await.status, StatusCode::NOT_FOUND);
+    }
+}
+
+#[tokio::test]
+async fn every_variant_of_every_component_appears() {
+    let t = TestApp::ready().await;
+    t.create_article("One", "Text.", &[("tags", "tagged")])
+        .await;
+    t.create_article("Two", "Text.", &[("tags", "tagged")])
+        .await;
+
+    for (header, marker) in HEADERS.iter().zip(["site-header", "topbar", "masthead"]) {
+        let fields = layout_form(&t.csrf, &[("header_variant", header)]);
+        t.post_form("/blog/admin/appearance", &fields).await;
+        assert!(t.get("/blog/").await.body.contains(marker), "{header}");
+    }
+    for (feed, marker) in FEEDS
+        .iter()
+        .zip(["post-list", "story-grid", "post-cards", "post-rows"])
+    {
+        let fields = layout_form(&t.csrf, &[("feed_variant", feed)]);
+        t.post_form("/blog/admin/appearance", &fields).await;
+        assert!(t.get("/blog/").await.body.contains(marker), "{feed}");
+    }
+    for (footer, marker) in FOOTERS.iter().zip(["<p>©", "footer-columns"]) {
+        let fields = layout_form(&t.csrf, &[("footer_variant", footer)]);
+        t.post_form("/blog/admin/appearance", &fields).await;
+        assert!(t.get("/blog/").await.body.contains(marker), "{footer}");
+    }
+    for rail in RAILS {
+        let fields = layout_form(&t.csrf, &[("tag_rail", rail)]);
+        t.post_form("/blog/admin/appearance", &fields).await;
+        let home = t.get("/blog/").await.body;
+        assert!(home.contains(&format!("rail-{rail}")));
+        assert_eq!(home.contains("side-block"), rail != "none", "{rail}");
+    }
+}
+
+#[tokio::test]
+async fn presets_serve_generated_tokens() {
+    let t = TestApp::ready().await;
+    for preset in quill::themes::ALL {
+        let css = t
+            .get(&format!("/blog/static/tokens/{}.css", preset.id))
+            .await;
+        assert_eq!(css.status, StatusCode::OK);
+        assert!(css.headers[header::CONTENT_TYPE]
+            .to_str()
+            .unwrap()
+            .starts_with("text/css"));
+        assert_eq!(css.body, preset.tokens().to_css());
+    }
+    assert_eq!(
+        t.get("/blog/static/tokens/nope.css").await.status,
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        t.get("/blog/static/tokens/editorial").await.status,
+        StatusCode::NOT_FOUND
+    );
+    assert!(t
+        .get("/blog/")
+        .await
+        .body
+        .contains("/blog/static/tokens/editorial.css"));
+}
+
+#[tokio::test]
+async fn article_data_never_depends_on_the_look() {
+    let t = TestApp::ready().await;
+    t.create_article(
+        "Stays",
+        "Body text.",
+        &[("tags", "kept"), ("excerpt", "Sum.")],
+    )
+    .await;
+    async fn snapshot(t: &TestApp) -> Vec<(String, String, String, String, String)> {
+        sqlx::query_as("SELECT title, slug, content, excerpt, updated_at FROM articles ORDER BY id")
+            .fetch_all(&t.state.db)
+            .await
+            .unwrap()
+    }
+    let before = snapshot(&t).await;
+    t.post_form(
+        "/blog/admin/appearance",
+        &layout_form(&t.csrf, &[("header_variant", "masthead")]),
+    )
+    .await;
+    for preset in quill::themes::ALL {
+        t.post_form(
+            "/blog/admin/themes",
+            &[("_csrf", &t.csrf), ("theme", preset.id)],
+        )
+        .await;
+        assert_eq!(t.get("/blog/posts/stays").await.status, StatusCode::OK);
+    }
+    assert_eq!(snapshot(&t).await, before);
+}

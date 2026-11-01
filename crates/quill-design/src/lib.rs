@@ -2,3 +2,9 @@
 //!
 //! This crate does no I/O and knows nothing about the web server, so the server
 //! and the command line share one set of validation rules.
+
+mod color;
+mod error;
+
+pub use color::Color;
+pub use error::TokenError;

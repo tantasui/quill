@@ -2,18 +2,19 @@
 
 [![CI](https://github.com/tantasui/quill/actions/workflows/ci.yml/badge.svg)](https://github.com/tantasui/quill/actions/workflows/ci.yml)
 
-Add a blog to the website you already have. Quill is a small, self-hosted blogging engine: one binary, one SQLite file, three built-in themes and a browser dashboard for writing and publishing. Nothing to build and no separate frontend to maintain.
+Add a blog to the website you already have. Quill is a small, self-hosted blogging engine: one binary, one SQLite file, three built-in presets and a browser dashboard for writing and publishing. Nothing to build and no separate frontend to maintain.
 
 - **Lives on your domain.** Serve it at `example.com/blog` or `blog.example.com`. Every link, asset, feed and canonical URL follows the public address you set.
 - **Publish from the browser.** A Markdown editor with a formatting toolbar, live preview, drag-and-drop images, drafts, scheduling, tags, cover images and SEO fields. You never need a terminal or a database client.
-- **Looks good out of the box.** Three responsive themes (*Editorial*, *Devlog* and *Gazette*) with dark mode. Preview any of them on your own content and switch at any time without touching your articles.
+- **Looks good out of the box.** Three responsive presets (*Editorial*, *Devlog* and *Gazette*) with dark mode. Preview any of them on your own content and switch at any time without touching your articles.
+- **A layout you arrange yourself.** Choose the header, feed style, sidebar, footer and article layout, and reorder the home page, with a live preview. Two blogs on the same preset don't have to look the same.
 - **Secure defaults.** Argon2 password hashing, HttpOnly session cookies, CSRF tokens and origin checks, login throttling, sanitized Markdown, content-sniffed image uploads (no SVG) and a strict Content-Security-Policy. A one-time setup code stops anyone else from claiming a fresh install.
 - **Yours to keep.** Built-in backup and restore, automatic snapshots before upgrades, and a Markdown export that works with other tools.
 - **Search-friendly.** Server-rendered HTML, canonical URLs, Open Graph tags, an Atom feed, a sitemap, `robots.txt`, and automatic redirects when you rename an article.
 
 ## Screenshots
 
-<!-- TODO: add dashboard and theme screenshots, plus a demo GIF. -->
+<!-- TODO: add dashboard and preset screenshots, plus a demo GIF. -->
 *Screenshots and a demo GIF are coming.*
 
 ## Why Quill?
@@ -48,7 +49,7 @@ cargo build --release
 ./target/release/quill         # prints the address and setup code
 ```
 
-Open `http://localhost:3000/admin/setup`, enter the setup code, name your blog, set its public address, create your account and pick a theme. Then open **Connect your site** in the dashboard: it generates the nginx, Caddy or Apache configuration for your address.
+Open `http://localhost:3000/admin/setup`, enter the setup code, name your blog, set its public address, create your account and pick a preset. Then open **Connect your site** in the dashboard: it generates the nginx, Caddy or Apache configuration for your address.
 
 Full instructions: [docs/install.md](docs/install.md).
 
@@ -80,7 +81,7 @@ quill reset-password [USER]   Set a new admin password
 | Fixed setup code | `--setup-code` | `QUILL_SETUP_CODE` | random |
 | Log level | | `QUILL_LOG` | `info` |
 
-Backups, upgrades and recovery: [docs/operations.md](docs/operations.md). Themes and the template contract: [docs/themes.md](docs/themes.md).
+Backups, upgrades and recovery: [docs/operations.md](docs/operations.md). Presets, layouts and tokens: [docs/themes.md](docs/themes.md).
 
 ## Development
 
@@ -91,7 +92,7 @@ cargo test --workspace                                       # unit + end-to-end
 cargo run                                                    # debug builds read templates and CSS from disk, so edits show on reload
 ```
 
-Layout: `src/routes/public.rs` (blog pages, feeds), `src/routes/admin/` (dashboard, one module per area), `src/models.rs` (queries), `src/auth.rs` (sessions, CSRF), `src/markdown.rs` (rendering and sanitizing), `templates/` and `static/` (embedded into the binary at build time), `migrations/` (applied on startup).
+Code: `crates/quill-design/` (tokens, layouts and presets; no I/O), `src/routes/public.rs` (blog pages, feeds), `src/routes/admin/` (dashboard, one module per area), `src/models.rs` (queries), `src/auth.rs` (sessions, CSRF), `src/markdown.rs` (rendering and sanitizing), `templates/` and `static/` (embedded into the binary at build time), `migrations/` (applied on startup).
 
 CI runs the first three on every push and pull request.
 
@@ -103,9 +104,9 @@ The longer reasoning behind individual choices is in [docs/decisions/](docs/deci
 |---|---|---|
 | Hosting target | Native binary on a VPS, plus a Docker image | One codebase covers both; shared PHP hosting can't run a server process. |
 | `/blog` or subdomain | Both | One public-address setting decides the base path. Proxies may keep or strip the prefix. |
-| Editor | Markdown with toolbar, live preview, side-by-side mode and in-theme preview | Portable content and no heavy client bundle; the toolbar covers authors who don't know Markdown. |
+| Editor | Markdown with toolbar, live preview, side-by-side mode and a preview on your blog's design | Portable content and no heavy client bundle; the toolbar covers authors who don't know Markdown. |
 | Database | SQLite (WAL mode) | Zero setup, single-file backups, plenty for one author's blog. |
-| `design.md` importer | Not yet | Themes already use CSS design tokens, which the importer can target later. |
+| `design.md` importer | Not yet | Presets already use typed design tokens, which the importer can target later. |
 | Users | Single administrator | Keeps the first releases simple; the schema keeps a `role` column for later. |
 | Content export | Markdown + YAML front matter, plus media | Readable by most static-site generators and blogging tools. |
 

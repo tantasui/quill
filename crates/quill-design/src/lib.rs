@@ -5,6 +5,8 @@
 
 mod color;
 mod error;
+mod length;
 
 pub use color::Color;
 pub use error::TokenError;
+pub use length::{Length, Offset};

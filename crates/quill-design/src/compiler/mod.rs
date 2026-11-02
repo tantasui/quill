@@ -11,6 +11,8 @@ mod dark;
 #[allow(dead_code)]
 mod extract;
 #[allow(dead_code)]
+pub mod fonts;
+#[allow(dead_code)]
 mod markdown;
 #[allow(dead_code)]
 mod palette;

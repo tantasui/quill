@@ -7,6 +7,8 @@ pub mod diagnostic;
 #[allow(dead_code)]
 mod css;
 #[allow(dead_code)]
+mod dark;
+#[allow(dead_code)]
 mod extract;
 #[allow(dead_code)]
 mod markdown;

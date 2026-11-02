@@ -8,6 +8,7 @@ Add a blog to the website you already have. Quill is a small, self-hosted bloggi
 - **Publish from the browser.** A Markdown editor with a formatting toolbar, live preview, drag-and-drop images, drafts, scheduling, tags, cover images and SEO fields. You never need a terminal or a database client.
 - **Looks good out of the box.** Three responsive presets (*Editorial*, *Devlog* and *Gazette*) with dark mode. Preview any of them on your own content and switch at any time without touching your articles.
 - **A layout you arrange yourself.** Choose the header, feed style, sidebar, footer and article layout, and reorder the home page, with a live preview. Two blogs on the same preset don't have to look the same.
+- **Paste a DESIGN.md, get that look.** Paste the file you'd give your coding agent, and your blog takes its colors, fonts and shapes. Every decision is listed with its source line, contrast is checked, and a preview on your own articles comes before anything goes live.
 - **Secure defaults.** Argon2 password hashing, HttpOnly session cookies, CSRF tokens and origin checks, login throttling, sanitized Markdown, content-sniffed image uploads (no SVG) and a strict Content-Security-Policy. A one-time setup code stops anyone else from claiming a fresh install.
 - **Yours to keep.** Built-in backup and restore, automatic snapshots before upgrades, and a Markdown export that works with other tools.
 - **Search-friendly.** Server-rendered HTML, canonical URLs, Open Graph tags, an Atom feed, a sitemap, `robots.txt`, and automatic redirects when you rename an article.
@@ -81,7 +82,7 @@ quill reset-password [USER]   Set a new admin password
 | Fixed setup code | `--setup-code` | `QUILL_SETUP_CODE` | random |
 | Log level | | `QUILL_LOG` | `info` |
 
-Backups, upgrades and recovery: [docs/operations.md](docs/operations.md). Presets, layouts and tokens: [docs/themes.md](docs/themes.md).
+Backups, upgrades and recovery: [docs/operations.md](docs/operations.md). Presets, layouts and tokens: [docs/themes.md](docs/themes.md). Importing designs: [docs/design-import.md](docs/design-import.md).
 
 ## Development
 
@@ -106,10 +107,10 @@ The longer reasoning behind individual choices is in [docs/decisions/](docs/deci
 | `/blog` or subdomain | Both | One public-address setting decides the base path. Proxies may keep or strip the prefix. |
 | Editor | Markdown with toolbar, live preview, side-by-side mode and a preview on your blog's design | Portable content and no heavy client bundle; the toolbar covers authors who don't know Markdown. |
 | Database | SQLite (WAL mode) | Zero setup, single-file backups, plenty for one author's blog. |
-| `design.md` importer | Not yet | Presets already use typed design tokens, which the importer can target later. |
+| DESIGN.md import | A deterministic compiler with typed tokens; no AI and no URL fetching | The same file always gives the same result, and nothing from a file reaches a stylesheet as text. |
 | Users | Single administrator | Keeps the first releases simple; the schema keeps a `role` column for later. |
 | Content export | Markdown + YAML front matter, plus media | Readable by most static-site generators and blogging tools. |
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). The bundled fonts are under the SIL Open Font License; see [static/fonts/licenses/](static/fonts/licenses/).

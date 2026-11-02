@@ -6,6 +6,8 @@ How a Quill blog looks comes from three separate things:
 - **The layout** is the structure: which header, which feed style, what order the home page is in.
 - **A preset** is a named starting point that provides both, plus a small stylesheet of finishing touches.
 
+An [imported DESIGN.md](design-import.md) replaces a preset's tokens and keeps your layout.
+
 None of them touch your content. Articles, tags and URLs are the same whatever you choose.
 
 ## Presets
@@ -48,7 +50,7 @@ Layouts and tokens are typed data in the `quill-design` crate (`crates/quill-des
 
 Loaded in this order:
 
-1. `/static/tokens/<preset>.css`: generated token values.
+1. `/static/tokens/<preset>.css`, or `design-<id>.css` for an imported design: generated token values.
 2. `static/themes/common.css`: article text, pagination and accessibility helpers.
 3. `static/themes/components.css`: every layout component in every variant, using tokens only.
 4. `static/themes/<preset>.css`: the preset's finishing touches, also using tokens only.
@@ -61,6 +63,8 @@ Loaded in this order:
 --font-body --font-heading --font-mono --heading-weight
 --measure --radius --shadow
 ```
+
+Imported designs also set `--title-weight`, `--image-radius` and `--design-font-ui`, along with `--page-width` if the file states one. Presets read the first three with their own look as the fallback, as in `font-weight: var(--title-weight, 600)`.
 
 The accent has separate roles because one color often can't do every job. `--accent-text` is for links and must be readable on the page background. `--accent-fill` is for filled areas, with `--on-accent` as the text on top. `--accent-soft` is an optional faint tint.
 
@@ -78,7 +82,7 @@ Tests then render every page with it and check its palettes for contrast.
 |---|---|
 | `site.name`, `site.description`, `site.url`, `site.language`, `site.author`, `site.footer` | Blog settings |
 | `base` | Base path, e.g. `/blog` (empty for a subdomain). Prefix every internal link with it. |
-| `theme`, `version` | Active preset id, and the version for cache busting |
+| `theme`, `version`, `tokens_url` | Active preset id, the version for cache busting, and the token stylesheet's address |
 | `layout` | The active layout, with the fields from `LayoutDraft` |
 | `nav_tags` | Most-used tags: `name`, `count`, `url` |
 | `feed_url`, `canonical`, `page_title`, `meta_description` | Feed and SEO values |

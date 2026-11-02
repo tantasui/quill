@@ -4,6 +4,7 @@
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
+use unicode_width::UnicodeWidthChar;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -129,35 +130,65 @@ impl Diagnostic {
 }
 
 /// The source line a span points at, for showing it with a caret underneath.
+/// The text is safe to print, and the caret is measured in terminal columns, so
+/// it lines up under wide characters.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Excerpt {
     pub text: String,
-    /// Characters before the caret, within `text`.
+    /// Columns before the caret, within `text`.
     pub caret_offset: usize,
+    /// Columns the caret covers, at least 1.
     pub caret_len: usize,
 }
 
 impl Span {
-    /// Cuts the line this span points at out of `source`. Long lines are
-    /// narrowed to a window around the span.
+    /// Cuts the line this span points at out of `source`. Long lines, and long
+    /// spans, are narrowed to a window.
     pub fn excerpt(self, source: &str) -> Option<Excerpt> {
         const WINDOW: usize = 100;
         let line = source
             .split('\n')
             .nth(self.line.checked_sub(1)? as usize)?
             .trim_end_matches('\r');
-        let chars: Vec<char> = line.chars().collect();
+        let chars: Vec<char> = line.chars().map(printable_char).collect();
         let start = self.column.saturating_sub(1) as usize;
+        let shown = (self.len as usize).clamp(1, WINDOW);
         let from = start.saturating_sub(WINDOW / 2);
-        let to = (start + self.len as usize + WINDOW / 2).min(chars.len());
+        let to = (start + shown + WINDOW / 2).min(chars.len());
         if from > chars.len() {
             return None;
         }
+        let caret_start = start.min(to);
+        let caret_end = (start + shown).min(to);
         Some(Excerpt {
             text: chars[from..to].iter().collect(),
-            caret_offset: start - from,
-            caret_len: (self.len as usize).clamp(1, WINDOW),
+            caret_offset: columns(&chars[from..caret_start]) + (start - caret_start),
+            caret_len: columns(&chars[caret_start..caret_end]).max(1),
         })
+    }
+}
+
+fn columns(chars: &[char]) -> usize {
+    chars.iter().filter_map(|c| c.width()).sum()
+}
+
+/// A character that can't change how a terminal shows anything around it. A
+/// design file is often someone else's: left alone, escape sequences in it could
+/// rewrite the output or set the clipboard, and bidirectional controls could
+/// reorder a line so it reads as something it isn't. Each character maps to
+/// exactly one, so positions stay right.
+fn printable_char(c: char) -> char {
+    match c {
+        '\t' => ' ',
+        '\u{061c}'
+        | '\u{200e}'
+        | '\u{200f}'
+        | '\u{2028}'
+        | '\u{2029}'
+        | '\u{202a}'..='\u{202e}'
+        | '\u{2066}'..='\u{2069}' => char::REPLACEMENT_CHARACTER,
+        c if c.is_control() => char::REPLACEMENT_CHARACTER,
+        c => c,
     }
 }
 
@@ -293,6 +324,80 @@ mod tests {
         }
         .excerpt(source)
         .is_none());
+    }
+
+    #[test]
+    fn narrows_a_very_long_span() {
+        let source = format!("--x: {};", "y".repeat(10_000));
+        let excerpt = Span {
+            line: 1,
+            column: 6,
+            len: 10_000,
+        }
+        .excerpt(&source)
+        .unwrap();
+        assert!(excerpt.text.len() < 200);
+        assert_eq!(excerpt.caret_len, 100);
+    }
+
+    #[test]
+    fn measures_the_caret_in_terminal_columns() {
+        // The accented letter and emoji are one character each; the emoji takes
+        // two columns and the combining mark takes none.
+        let source = "é🎨e\u{301} #bad";
+        let excerpt = Span {
+            line: 1,
+            column: 6,
+            len: 4,
+        }
+        .excerpt(source)
+        .unwrap();
+        assert_eq!(excerpt.caret_offset, 5);
+        assert_eq!(excerpt.caret_len, 4);
+
+        let wide = Span {
+            line: 1,
+            column: 2,
+            len: 1,
+        }
+        .excerpt(source)
+        .unwrap();
+        assert_eq!((wide.caret_offset, wide.caret_len), (1, 2));
+
+        // A span just past the end of a line still gets a caret, where it points.
+        let past = Span {
+            line: 1,
+            column: 5,
+            len: 1,
+        }
+        .excerpt("abc")
+        .unwrap();
+        assert_eq!(
+            (past.text.as_str(), past.caret_offset, past.caret_len),
+            ("abc", 4, 1)
+        );
+    }
+
+    #[test]
+    fn excerpts_cannot_control_a_terminal() {
+        let source = "a\u{1b}]52;c;aGk=\u{7}b\u{1b}[2Jc\u{202e}d\u{9b}e\u{7f}f\tg\rh #bad";
+        let chars = source.chars().count() as u32;
+        let excerpt = Span {
+            line: 1,
+            column: chars - 3,
+            len: 4,
+        }
+        .excerpt(source)
+        .unwrap();
+        assert!(
+            !excerpt.text.chars().any(char::is_control),
+            "{:?}",
+            excerpt.text
+        );
+        assert!(!excerpt.text.contains('\u{202e}'));
+        // Every character was replaced one for one, so the caret still lines up.
+        let at: String = excerpt.text.chars().skip(excerpt.caret_offset).collect();
+        assert_eq!(at, "#bad");
     }
 
     #[test]

@@ -131,13 +131,14 @@ pub(crate) fn build(
         );
     }
 
+    // A file that names a link color but no fill has told us its accent.
     let fill_given = flat(Role::AccentFill, diagnostics);
-    let accent_fill = fill_given.unwrap_or_else(|| {
+    let link_given = flat(Role::AccentText, diagnostics);
+    let accent_fill = fill_given.or(link_given).unwrap_or_else(|| {
         derived.push("accent_fill");
         fallback.map_or(text, |p| p.accent_fill)
     });
 
-    let link_given = flat(Role::AccentText, diagnostics);
     let accent_candidate = link_given.unwrap_or(accent_fill);
     let accent_text = if accent_candidate.contrast_ratio(bg) >= MIN_CONTRAST {
         accent_candidate
@@ -415,6 +416,18 @@ mod tests {
         assert!(palette.border.is_opaque());
         assert_eq!(hex(palette.border), "#e5e5e5");
         assert!(codes(&diagnostics).contains(&Code::AlphaFlattened));
+    }
+
+    #[test]
+    fn a_link_color_serves_as_the_accent_when_no_fill_is_named() {
+        let (palette, _) = build_light(&[
+            (Role::Bg, "#ffffff"),
+            (Role::Text, "#111111"),
+            (Role::AccentText, "#0b57d0"),
+        ]);
+        let palette = palette.unwrap();
+        assert_eq!(hex(palette.accent_fill), "#0b57d0");
+        assert_eq!(hex(palette.accent_text), "#0b57d0");
     }
 
     #[test]

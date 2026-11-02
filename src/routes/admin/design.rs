@@ -5,7 +5,9 @@ use axum::extract::{Multipart, Path, Query, State};
 use axum::http::{header, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::Form;
-use quill_design::{compile_bytes, CompiledDesign, Diagnostic, Level, Palette, Scheme};
+use quill_design::{
+    compile_bytes, CompiledDesign, Diagnostic, Level, Palette, Scheme, SourceLines,
+};
 use serde::Deserialize;
 use serde_json::{json, Value};
 
@@ -24,10 +26,11 @@ use super::{admin_context, notice_text, redirect, render, CsrfForm, Ctx, NoticeQ
 pub const MAX_UPLOAD_BYTES: usize = 2 * 1024 * 1024;
 
 fn diagnostic_rows(source: &str, diagnostics: &[Diagnostic]) -> Vec<Value> {
+    let lines = SourceLines::new(source);
     diagnostics
         .iter()
         .map(|d| {
-            let excerpt = d.span.and_then(|span| span.excerpt(source));
+            let excerpt = d.span.and_then(|span| lines.excerpt(span));
             json!({
                 "code": d.code.as_str(),
                 "level": d.level,

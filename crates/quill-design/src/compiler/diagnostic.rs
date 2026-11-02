@@ -141,18 +141,32 @@ pub struct Excerpt {
     pub caret_len: usize,
 }
 
-impl Span {
-    /// Cuts the line this span points at out of `source`. Long lines, and long
-    /// spans, are narrowed to a window.
-    pub fn excerpt(self, source: &str) -> Option<Excerpt> {
-        const WINDOW: usize = 100;
-        let line = source
+/// A source split into lines, for cutting excerpts from. A file can produce
+/// thousands of diagnostics, so the work of finding a line and its columns is
+/// done once here, and each excerpt only costs the size of its window.
+pub struct SourceLines {
+    lines: Vec<Vec<char>>,
+}
+
+impl SourceLines {
+    pub fn new(source: &str) -> Self {
+        let lines = source
             .split('\n')
-            .nth(self.line.checked_sub(1)? as usize)?
-            .trim_end_matches('\r');
-        let chars: Vec<char> = line.chars().map(printable_char).collect();
-        let start = self.column.saturating_sub(1) as usize;
-        let shown = (self.len as usize).clamp(1, WINDOW);
+            .map(|line| {
+                let line = line.trim_end_matches('\r');
+                line.chars().map(printable_char).collect()
+            })
+            .collect();
+        SourceLines { lines }
+    }
+
+    /// Cuts out the line a span points at. Long lines, and long spans, are
+    /// narrowed to a window.
+    pub fn excerpt(&self, span: Span) -> Option<Excerpt> {
+        const WINDOW: usize = 100;
+        let chars = self.lines.get(span.line.checked_sub(1)? as usize)?;
+        let start = span.column.saturating_sub(1) as usize;
+        let shown = (span.len as usize).clamp(1, WINDOW);
         let from = start.saturating_sub(WINDOW / 2);
         let to = (start + shown + WINDOW / 2).min(chars.len());
         if from > chars.len() {
@@ -255,6 +269,12 @@ fn floor_char_boundary(text: &str, mut index: usize) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    impl Span {
+        fn excerpt(self, source: &str) -> Option<Excerpt> {
+            SourceLines::new(source).excerpt(self)
+        }
+    }
 
     #[test]
     fn codes_are_unique_and_well_formed() {

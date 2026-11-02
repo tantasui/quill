@@ -5,7 +5,7 @@
 
 use std::fmt::Write;
 
-use super::diagnostic::{printable, Diagnostic, Level};
+use super::diagnostic::{printable, Diagnostic, Level, SourceLines};
 
 /// How many diagnostics there are at each level.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -66,10 +66,11 @@ pub fn render(diagnostics: &[Diagnostic], source: &str, file: &str, color: bool)
         .map(|span| span.line.to_string().len())
         .max()
         .unwrap_or(1);
+    let lines = SourceLines::new(source);
     let file = printable(file);
     let mut out = String::new();
     for d in diagnostics {
-        render_one(&mut out, d, source, &file, width, Paint(color));
+        render_one(&mut out, d, &lines, &file, width, Paint(color));
         out.push('\n');
     }
     out
@@ -78,7 +79,7 @@ pub fn render(diagnostics: &[Diagnostic], source: &str, file: &str, color: bool)
 fn render_one(
     out: &mut String,
     d: &Diagnostic,
-    source: &str,
+    lines: &SourceLines,
     file: &str,
     width: usize,
     paint: Paint,
@@ -99,7 +100,7 @@ fn render_one(
     }
 
     let bar = paint.gutter("|");
-    if let Some((span, excerpt)) = d.span.and_then(|s| Some((s, s.excerpt(source)?))) {
+    if let Some((span, excerpt)) = d.span.and_then(|s| Some((s, lines.excerpt(s)?))) {
         let number = paint.gutter(&format!("{:>width$}", span.line));
         let carets = paint.level(d.level, &"^".repeat(excerpt.caret_len));
         let _ = writeln!(out, "{pad} {bar}");

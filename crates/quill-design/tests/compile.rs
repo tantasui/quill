@@ -302,3 +302,36 @@ fn renders_a_whole_report_for_the_terminal() {
     out.push_str(&report::summary(&result.diagnostics, false));
     insta::assert_snapshot!(out);
 }
+
+/// Showing diagnostics has to scale as well as finding them: a file at the size
+/// limit can produce tens of thousands.
+#[test]
+fn reports_with_thousands_of_diagnostics_stay_fast() {
+    let limit = MAX_SOURCE_BYTES - 200;
+    let entries = |separator: &str| {
+        let mut body = String::new();
+        let mut n = 0;
+        while body.len() < limit {
+            let _ = write!(body, "a{n}: nope{separator}");
+            n += 1;
+        }
+        body
+    };
+    let one_line = format!(
+        "---\ncolors: {{text: \"#111111\", background: \"#ffffff\", {}}}\n---\n",
+        entries(", ")
+    );
+    let many_lines = format!(
+        "---\ncolors:\n  text: \"#111111\"\n  background: \"#ffffff\"\n  {}\n---\n",
+        entries("\n  ").trim_end()
+    );
+    for source in [one_line, many_lines] {
+        let result = compile(&source);
+        assert!(result.diagnostics.len() > 10_000);
+        let started = std::time::Instant::now();
+        let out = report::render(&result.diagnostics, &source, "big.md", false);
+        let elapsed = started.elapsed();
+        assert!(elapsed.as_secs() < 5, "took {elapsed:?}");
+        assert!(out.contains("^^^^"));
+    }
+}

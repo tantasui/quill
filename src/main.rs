@@ -8,6 +8,8 @@ use tracing_subscriber::EnvFilter;
 
 use quill::{auth, backup, db, settings, AppState};
 
+mod design_cli;
+
 #[derive(Parser)]
 #[command(
     name = "quill",
@@ -51,6 +53,11 @@ enum Command {
         /// Defaults to the first administrator account.
         username: Option<String>,
     },
+    /// Work with DESIGN.md files. Needs no blog and no data folder.
+    Design {
+        #[command(subcommand)]
+        command: design_cli::DesignCommand,
+    },
 }
 
 #[derive(Parser, Clone)]
@@ -89,6 +96,9 @@ async fn main() -> ExitCode {
             .await
             .map(|n| println!("Exported {n} article(s) to {}", out.display())),
         Some(Command::ResetPassword { username }) => reset_password(&cli.data_dir, username).await,
+        // These exit with their own codes, because a design failing its checks
+        // is a result rather than Quill failing to run.
+        Some(Command::Design { command }) => return design_cli::run(command),
     };
     match result {
         Ok(()) => ExitCode::SUCCESS,

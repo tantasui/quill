@@ -132,6 +132,22 @@ impl Compilation {
             diagnostics: vec![diagnostic],
         }
     }
+
+    /// The result for a file over the limit, for a caller that can tell from its
+    /// size without reading it.
+    pub fn too_large(bytes: u64) -> Self {
+        Compilation::failed(
+            Diagnostic::new(
+                Code::SourceTooLarge,
+                format!(
+                    "this file is {} KB, and the limit is {} KB",
+                    bytes / 1024,
+                    MAX_SOURCE_BYTES / 1024
+                ),
+            )
+            .help("A DESIGN.md file is normally far smaller. Check that this is the right file."),
+        )
+    }
 }
 
 /// Compiles an uploaded file, which might not be text at all.
@@ -139,7 +155,7 @@ pub fn compile_bytes(bytes: &[u8]) -> Compilation {
     match std::str::from_utf8(bytes) {
         Ok(source) => compile(source),
         // The size limit applies first: there's no reason to scan a huge file.
-        Err(_) if bytes.len() > MAX_SOURCE_BYTES => too_large(bytes.len()),
+        Err(_) if bytes.len() > MAX_SOURCE_BYTES => Compilation::too_large(bytes.len() as u64),
         Err(error) => Compilation::failed(
             Diagnostic::new(
                 Code::NotUtf8,
@@ -153,23 +169,9 @@ pub fn compile_bytes(bytes: &[u8]) -> Compilation {
     }
 }
 
-fn too_large(bytes: usize) -> Compilation {
-    Compilation::failed(
-        Diagnostic::new(
-            Code::SourceTooLarge,
-            format!(
-                "this file is {} KB, and the limit is {} KB",
-                bytes / 1024,
-                MAX_SOURCE_BYTES / 1024
-            ),
-        )
-        .help("A DESIGN.md file is normally far smaller. Check that this is the right file."),
-    )
-}
-
 pub fn compile(source: &str) -> Compilation {
     if source.len() > MAX_SOURCE_BYTES {
-        return too_large(source.len());
+        return Compilation::too_large(source.len() as u64);
     }
 
     // Parse and extract.

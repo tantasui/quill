@@ -17,6 +17,8 @@ mod markdown;
 #[allow(dead_code)]
 mod palette;
 #[allow(dead_code)]
+mod prose;
+#[allow(dead_code)]
 mod roles;
 #[allow(dead_code)]
 mod yaml;

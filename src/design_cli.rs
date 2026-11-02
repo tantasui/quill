@@ -9,7 +9,7 @@ use std::process::ExitCode;
 use anyhow::{Context, Result};
 use clap::Subcommand;
 use quill_design::compiler::report::{self, Tally};
-use quill_design::{compile_bytes, Compilation, Diagnostic, MAX_SOURCE_BYTES};
+use quill_design::{compile_bytes, Compilation, Diagnostic, Level, MAX_SOURCE_BYTES};
 use serde::Serialize;
 
 /// The design has errors.
@@ -29,11 +29,38 @@ pub enum DesignCommand {
         #[arg(long)]
         json: bool,
     },
+    /// Compile a DESIGN.md file to its CSS, for light and dark. Problems go to
+    /// standard error, so the CSS can be redirected. Exit codes are as for `check`.
+    Compile {
+        file: PathBuf,
+        /// Write the CSS to this file instead of standard output.
+        #[arg(long)]
+        out: Option<PathBuf>,
+        /// Where the blog lives, such as /blog, for the font addresses in the CSS.
+        #[arg(long, default_value = "", value_parser = parse_base_path)]
+        base_path: String,
+    },
+}
+
+/// This one goes into a stylesheet, so it's held to the characters of a plain path.
+fn parse_base_path(input: &str) -> Result<String, String> {
+    let path = input.trim_end_matches('/');
+    let safe = |c: char| c.is_ascii_alphanumeric() || "/-._~".contains(c);
+    if path.is_empty() || (path.starts_with('/') && path.chars().all(safe)) {
+        Ok(path.to_string())
+    } else {
+        Err("use a path such as /blog".to_string())
+    }
 }
 
 pub fn run(command: DesignCommand) -> ExitCode {
     let result = match command {
         DesignCommand::Check { file, json } => check(&file, json),
+        DesignCommand::Compile {
+            file,
+            out,
+            base_path,
+        } => compile(&file, out.as_deref(), &base_path),
     };
     match result {
         Ok(code) => code,
@@ -129,5 +156,39 @@ fn check(path: &Path, json: bool) -> Result<ExitCode> {
         text
     };
     emit(io::stdout(), &text);
+    Ok(verdict(&compilation))
+}
+
+fn compile(path: &Path, out: Option<&Path>, base_path: &str) -> Result<ExitCode> {
+    let Loaded {
+        source,
+        compilation,
+    } = load(path)?;
+
+    // Decisions the compiler made are for `check`. Only what might need acting on
+    // appears here, next to output someone is about to use.
+    let problems: Vec<Diagnostic> = compilation
+        .diagnostics
+        .iter()
+        .filter(|d| d.level != Level::Note)
+        .cloned()
+        .collect();
+    let color = wants_color(&io::stderr());
+    let file = path.display().to_string();
+    let mut text = report::render(&problems, &source, &file, color);
+    text.push_str(&report::summary(&compilation.diagnostics, color));
+    emit(io::stderr(), &text);
+
+    if let Some(design) = &compilation.design {
+        let css = design.to_css(base_path);
+        match out {
+            Some(out) => {
+                std::fs::write(out, css)
+                    .with_context(|| format!("could not write {}", out.display()))?;
+                emit(io::stderr(), &format!("Wrote {}\n", out.display()));
+            }
+            None => emit(io::stdout(), &css),
+        }
+    }
     Ok(verdict(&compilation))
 }

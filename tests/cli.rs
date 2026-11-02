@@ -205,3 +205,94 @@ fn design_commands_leave_no_data_folder_behind() {
     assert_eq!(output.status.code(), Some(0));
     assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 0);
 }
+
+#[test]
+fn compile_prints_css_for_light_and_dark_to_stdout() {
+    let file = fixture(GOOD);
+    let output = quill(&["design", "compile", file.to_str().unwrap()]);
+    assert_eq!(output.status.code(), Some(0), "{}", stderr(&output));
+    let css = stdout(&output);
+    assert!(css.contains(":root {"), "{css}");
+    assert!(css.contains("@media (prefers-color-scheme: dark)"), "{css}");
+    // Only CSS, so `> tokens.css` gives a usable file.
+    assert!(!css.contains("this design can be applied"));
+    assert!(stderr(&output).contains("ok: this design can be applied"));
+}
+
+#[test]
+fn compile_writes_to_a_file_with_out() {
+    let dir = tempfile::tempdir().unwrap();
+    let out = dir.path().join("tokens.css");
+    let source = fixture(GOOD);
+    let source = source.to_str().unwrap();
+    let output = quill(&["design", "compile", source, "--out", out.to_str().unwrap()]);
+    assert_eq!(output.status.code(), Some(0), "{}", stderr(&output));
+    assert!(output.stdout.is_empty());
+    assert!(stderr(&output).contains("Wrote"));
+    let printed = quill(&["design", "compile", source]);
+    assert_eq!(std::fs::read(&out).unwrap(), printed.stdout);
+}
+
+#[test]
+fn compile_writes_nothing_when_the_design_has_errors() {
+    let dir = tempfile::tempdir().unwrap();
+    let out = dir.path().join("tokens.css");
+    std::fs::write(&out, "kept").unwrap();
+    let source = fixture(BAD);
+    let source = source.to_str().unwrap();
+
+    let output = quill(&["design", "compile", source, "--out", out.to_str().unwrap()]);
+    assert_eq!(output.status.code(), Some(1));
+    assert!(stderr(&output).contains("error[QD010]"));
+    assert_eq!(std::fs::read_to_string(&out).unwrap(), "kept");
+
+    assert!(quill(&["design", "compile", source]).stdout.is_empty());
+}
+
+#[test]
+fn compile_shows_problems_but_leaves_notes_to_check() {
+    let source = fixture(BAD);
+    let output = quill(&["design", "compile", source.to_str().unwrap()]);
+    let text = stderr(&output);
+    assert!(text.contains("warning[QD005]"), "{text}");
+    assert!(!text.contains("note["), "{text}");
+    // The count still tells the reader there are notes to go and find.
+    assert!(text.contains("2 notes)"), "{text}");
+    assert!(stdout(&check(&source, &[])).contains("note["));
+}
+
+#[test]
+fn compile_reports_a_place_it_cannot_write_as_trouble() {
+    let dir = tempfile::tempdir().unwrap();
+    let out = dir.path().join("no/such/folder/tokens.css");
+    let source = fixture(GOOD);
+    let output = quill(&[
+        "design",
+        "compile",
+        source.to_str().unwrap(),
+        "--out",
+        out.to_str().unwrap(),
+    ]);
+    assert_eq!(output.status.code(), Some(2));
+    assert!(stderr(&output).contains("could not write"));
+}
+
+#[test]
+fn compile_uses_the_base_path_for_fonts_and_keeps_it_clean() {
+    let source = fixture("refero_style.md");
+    let source = source.to_str().unwrap();
+    let css = |extra: &[&str]| {
+        let mut args = vec!["design", "compile", source];
+        args.extend_from_slice(extra);
+        stdout(&quill(&args))
+    };
+    assert!(css(&[]).contains("url(\"/static/fonts/"));
+    assert!(css(&["--base-path", "/blog"]).contains("url(\"/blog/static/fonts/"));
+    assert!(css(&["--base-path=/blog/"]).contains("url(\"/blog/static/fonts/"));
+
+    for bad in ["blog", "/a\"b", "/a b", "/a);}"] {
+        let output = quill(&["design", "compile", source, "--base-path", bad]);
+        assert_eq!(output.status.code(), Some(2), "{bad}");
+        assert!(output.stdout.is_empty(), "{bad}");
+    }
+}

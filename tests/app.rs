@@ -1503,3 +1503,91 @@ async fn design_pages_need_a_session() {
         assert_eq!(t.get(&path).await.location(), "/blog/admin/login", "{path}");
     }
 }
+
+fn run_design_cli(args: &[&str], file: &str, contents: &str) -> std::process::Output {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join(file);
+    std::fs::write(&path, contents).unwrap();
+    std::process::Command::new(env!("CARGO_BIN_EXE_quill"))
+        .arg("design")
+        .args(args)
+        .arg(&path)
+        .output()
+        .unwrap()
+}
+
+/// Each diagnostic as its code and place, from the rows on a dashboard page.
+fn dashboard_diagnostics(page: &str) -> Vec<(String, Option<(u64, u64)>)> {
+    page.split("<li class=\"diagnostic ")
+        .skip(1)
+        .map(|row| {
+            let code = row.split("<code>").nth(1).unwrap().split("</code>").next();
+            let place = row
+                .split("class=\"diagnostic-where\">line ")
+                .nth(1)
+                .map(|rest| {
+                    let (line, rest) = rest.split_once(", column ").unwrap();
+                    let column = rest.split('<').next().unwrap();
+                    (line.parse().unwrap(), column.parse().unwrap())
+                });
+            (code.unwrap().to_string(), place)
+        })
+        .collect()
+}
+
+fn cli_diagnostics(source: &str) -> Vec<(String, Option<(u64, u64)>)> {
+    let output = run_design_cli(&["check", "--json"], "DESIGN.md", source);
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    report["diagnostics"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|d| {
+            let place = d["span"]["line"]
+                .as_u64()
+                .map(|line| (line, d["span"]["column"].as_u64().unwrap()));
+            (d["code"].as_str().unwrap().to_string(), place)
+        })
+        .collect()
+}
+
+#[tokio::test]
+async fn the_terminal_and_the_dashboard_report_the_same_things() {
+    let t = TestApp::ready().await;
+
+    // A file with errors, which the dashboard shows on the import form.
+    let bad = include_str!("../crates/quill-design/tests/fixtures/messy.md");
+    let res = t.import_design(&t.csrf, bad, None).await;
+    assert_eq!(res.status, StatusCode::UNPROCESSABLE_ENTITY);
+    let expected = cli_diagnostics(bad);
+    assert!(expected.len() > 5);
+    assert_eq!(dashboard_diagnostics(&res.body), expected);
+
+    // A file that compiles, which it shows on the review page.
+    let good = include_str!("../crates/quill-design/tests/fixtures/refero_style.md");
+    let review = t.get(&t.import_ok(good).await).await;
+    let expected = cli_diagnostics(good);
+    assert!(!expected.is_empty());
+    assert_eq!(dashboard_diagnostics(&review.body), expected);
+}
+
+#[tokio::test]
+async fn the_terminal_compiles_the_stylesheet_the_blog_serves() {
+    let t = TestApp::ready().await;
+    let good = include_str!("../crates/quill-design/tests/fixtures/refero_style.md");
+
+    let review_url = t.import_ok(good).await;
+    let id = review_url.rsplit('/').next().unwrap();
+    let apply = t
+        .post_form(
+            &format!("/blog/admin/appearance/design/{id}/apply"),
+            &[("_csrf", t.csrf.as_str())],
+        )
+        .await;
+    assert_eq!(apply.status, StatusCode::SEE_OTHER, "{}", apply.body);
+    let served = t.get(&format!("/blog/static/tokens/design-{id}.css")).await;
+    assert_eq!(served.status, StatusCode::OK);
+
+    let output = run_design_cli(&["compile", "--base-path", "/blog"], "DESIGN.md", good);
+    assert_eq!(String::from_utf8(output.stdout).unwrap(), served.body);
+}

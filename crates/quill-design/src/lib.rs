@@ -4,6 +4,7 @@
 //! and the command line share one set of validation rules.
 
 mod color;
+pub mod compiler;
 mod error;
 mod font;
 mod layout;

@@ -276,6 +276,18 @@ impl Walker<'_> {
                     return;
                 }
             }
+            // `Light/Dark: ✗ No / ✓ Full` says which schemes a design supports.
+            if key_is(&["light dark"]) {
+                if let Some((light, dark)) = value.split_once('/') {
+                    let no = |side: &str| side.contains('✗') || words(side).contains(" no ");
+                    match (no(light), no(dark)) {
+                        (true, false) => self.out.theme = Some(Scheme::Dark),
+                        (false, true) => self.out.theme = Some(Scheme::Light),
+                        _ => {}
+                    }
+                    return;
+                }
+            }
             if self.in_typography() && self.font_line(&key_words, value, offset) {
                 return;
             }
@@ -888,6 +900,19 @@ Mono font: Berkeley Mono
         assert_eq!(out.name.as_deref(), Some("Ramp"));
         assert_eq!(out.theme, Some(Scheme::Dark));
         assert_eq!(run("**Theme:** light mode\n").theme, Some(Scheme::Light));
+    }
+
+    #[test]
+    fn reads_which_schemes_a_design_supports() {
+        assert_eq!(
+            run("**Light/Dark:** ✗ No / ✓ Full\n").theme,
+            Some(Scheme::Dark)
+        );
+        assert_eq!(
+            run("**Light/Dark:** ✓ Full / ✗ No\n").theme,
+            Some(Scheme::Light)
+        );
+        assert_eq!(run("**Light/Dark:** ✓ Full / ✓ Full\n").theme, None);
     }
 
     #[test]

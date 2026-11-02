@@ -226,8 +226,11 @@ fn infer_roles(
             &'a dyn Fn(&Pending) -> f64,
             &'a str,
         );
+        // The spec's convention: `neutral` is the page color even when it's
+        // tinted, like a wheat paper, and a colorful `primary` is the key color.
+        let named = |p: &Pending, word: &str| roles::words(&p.name).contains(&format!(" {word} "));
         let bg_ok = |p: &Pending| {
-            is_neutral(p)
+            (is_neutral(p) || named(p, "neutral"))
                 && if dark_palette {
                     lightness(p) < 0.35
                 } else {
@@ -245,11 +248,13 @@ fn infer_roles(
         let muted_ok = |p: &Pending| is_neutral(p) && (0.35..=0.75).contains(&lightness(p));
         let accent_ok = |p: &Pending| chroma(p) >= NEUTRAL_CHROMA;
         let outermost = |p: &Pending| {
-            if dark_palette {
-                -lightness(p)
-            } else {
-                lightness(p)
-            }
+            let bonus = if named(p, "neutral") { 10.0 } else { 0.0 };
+            bonus
+                + if dark_palette {
+                    -lightness(p)
+                } else {
+                    lightness(p)
+                }
         };
         let innermost = |p: &Pending| {
             if dark_palette {
@@ -259,13 +264,16 @@ fn infer_roles(
             }
         };
         let closest_to_middle = |p: &Pending| -(lightness(p) - 0.55).abs();
-        let most_colorful = |p: &Pending| chroma(p);
+        let key_color = |p: &Pending| {
+            let bonus = if named(p, "primary") { 10.0 } else { 0.0 };
+            bonus + chroma(p)
+        };
         let rules: [Rule; 4] = [
             (
                 Role::AccentFill,
                 &accent_ok,
-                &most_colorful,
-                "it's the most colorful",
+                &key_color,
+                "it's the key color",
             ),
             (Role::Bg, &bg_ok, &outermost, "it's the outermost neutral"),
             (

@@ -120,6 +120,33 @@ typography:
     }
 }
 
+fn light(source: &str) -> Palette {
+    compile(source).design.expect("should compile").tokens.light
+}
+
+/// These three shapes all come from real files.
+#[test]
+fn a_colorful_primary_is_the_accent_even_if_another_is_more_saturated() {
+    let palette = light("---\ncolors:\n  primary: \"#0080FF\"\n  secondary: \"#FF1493\"\n  tertiary: \"#00FFFF\"\n---\n");
+    assert_eq!(palette.accent_fill.to_css(), "#0080ff");
+}
+
+#[test]
+fn a_tinted_neutral_is_still_the_page_color() {
+    let palette = light("---\ncolors:\n  primary: \"#B5A642\"\n  secondary: \"#5C0000\"\n  neutral: \"#F5DEB3\"\n---\n");
+    assert_eq!(palette.bg.to_css(), "#f5deb3");
+    assert_eq!(palette.accent_fill.to_css(), "#b5a642");
+}
+
+#[test]
+fn a_design_that_says_it_is_dark_only_gets_a_dark_page() {
+    let result = compile("---\ncolors:\n  primary: \"#00FFFF\"\n  neutral: \"#4B0082\"\n---\n\n**Light/Dark:** ✗ No / ✓ Full\n");
+    let design = result.design.as_ref().expect("should compile");
+    assert_eq!(design.tokens.light.bg.to_css(), "#4b0082");
+    assert_eq!(design.tokens.light, design.tokens.dark);
+    assert!(has_code(&result, Code::DarkOnly));
+}
+
 #[test]
 fn enforces_the_size_limit() {
     let limit = "x".repeat(MAX_SOURCE_BYTES);

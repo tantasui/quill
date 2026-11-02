@@ -3,6 +3,7 @@
 pub mod auth;
 pub mod backup;
 pub mod db;
+pub mod designs;
 pub mod error;
 pub mod markdown;
 pub mod models;

@@ -1,0 +1,79 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ design.name }}{% endblock %}
+{% block head %}<script src="{{ base }}/static/admin/design.js?v={{ version }}" defer></script>{% endblock %}
+{% block content %}
+<div class="editor-crumbs"><a href="{{ base }}/admin/appearance/design">← Import a design</a></div>
+<div class="page-head">
+  <h1>{{ design.name }}{% if design.active %} <span class="badge badge-published">Live</span>{% endif %}</h1>
+  <div class="layout-actions">
+    {% if not design.active %}
+    <form method="post" action="{{ apply_url }}">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <button type="submit" class="btn btn-primary">{{ "Use this design again" if design.applied else "Apply to my blog" }}</button>
+    </form>
+    {% endif %}
+    {% if not design.applied %}
+    <form method="post" action="{{ cancel_url }}">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <button type="submit" class="btn">Cancel</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+<p class="lead">{% if warnings %}{{ warnings }} warning{{ "" if warnings == 1 else "s" }} and {% endif %}{{ notes }} note{{ "" if notes == 1 else "s" }}. {% if design.active %}This design is live.{% else %}Nothing has changed on your blog yet.{% endif %}</p>
+
+<div class="design-review">
+  <div class="design-details">
+    <section class="card">
+      <h2>What was found</h2>
+      {% if diagnostics %}
+      {% include "admin/_diagnostics.html" %}
+      {% else %}
+      <p class="muted">No warnings or notes. Everything in this file was used as written.</p>
+      {% endif %}
+    </section>
+    <section class="card">
+      <h2>Colors</h2>
+      <div class="palettes">
+        {% for scheme, rows in [("Light", design.light), ("Dark", design.dark)] %}
+        <div>
+          <h3>{{ scheme }}</h3>
+          <ul class="swatches">
+            {% for row in rows %}<li><span class="swatch" style="background: {{ row.value }}"></span> {{ row.name }} <code>{{ row.value }}</code></li>{% endfor %}
+          </ul>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    <section class="card">
+      <h2>Fonts</h2>
+      <dl class="font-list">
+        <dt>Body</dt><dd><code>{{ design.fonts.body }}</code></dd>
+        <dt>Headings</dt><dd><code>{{ design.fonts.heading }}</code></dd>
+        <dt>Code</dt><dd><code>{{ design.fonts.mono }}</code></dd>
+      </dl>
+    </section>
+  </div>
+
+  <div class="layout-preview">
+    <form method="get" action="{{ preview_url }}" target="design-preview" class="preview-controls" id="design-preview-form">
+      <div class="field preview-page">
+        <label for="preview_page">Page</label>
+        <select id="preview_page" name="page">
+          <option value="home">Home</option>
+          <option value="article">Article</option>
+        </select>
+      </div>
+      <div class="field preview-page">
+        <label for="preview_scheme">Colors</label>
+        <select id="preview_scheme" name="scheme">
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-small" id="preview-show">Show</button>
+    </form>
+    <iframe name="design-preview" title="Design preview" src="{{ preview_url }}?page=home&amp;scheme=light"></iframe>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,11 @@
+<ul class="diagnostics">
+  {% for d in diagnostics %}
+  <li class="diagnostic diagnostic-{{ d.level }}">
+    <p class="diagnostic-head"><span class="diagnostic-level">{{ d.level }}</span> <code>{{ d.code }}</code>{% if d.line %} <span class="diagnostic-where">line {{ d.line }}, column {{ d.column }}</span>{% endif %}</p>
+    <p class="diagnostic-message">{{ d.message }}</p>
+    {% if d.excerpt %}<pre class="diagnostic-source"><code>{{ d.excerpt }}
+{{ d.caret }}</code></pre>{% endif %}
+    {% if d.help %}<p class="help">{{ d.help }}</p>{% endif %}
+  </li>
+  {% endfor %}
+</ul>

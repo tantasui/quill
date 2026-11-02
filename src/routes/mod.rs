@@ -70,6 +70,30 @@ pub fn app(state: AppState) -> Router {
             "/admin/appearance/preview",
             post(admin::appearance::preview_layout),
         )
+        .route(
+            "/admin/appearance/design",
+            get(admin::design::import_form)
+                .post(admin::design::import_submit)
+                .layer(DefaultBodyLimit::max(admin::design::MAX_UPLOAD_BYTES)),
+        )
+        .route("/admin/appearance/design/clear", post(admin::design::clear))
+        .route("/admin/appearance/design/{id}", get(admin::design::review))
+        .route(
+            "/admin/appearance/design/{id}/preview",
+            get(admin::design::preview),
+        )
+        .route(
+            "/admin/appearance/design/{id}/tokens.css",
+            get(admin::design::preview_tokens),
+        )
+        .route(
+            "/admin/appearance/design/{id}/apply",
+            post(admin::design::apply),
+        )
+        .route(
+            "/admin/appearance/design/{id}/cancel",
+            post(admin::design::cancel),
+        )
         // The address from before this page was renamed still works.
         .route(
             "/admin/themes",
@@ -218,16 +242,21 @@ pub fn request_origin(headers: &HeaderMap) -> Option<String> {
     request_host(headers).map(|h| format!("{scheme}://{}", h.to_ascii_lowercase()))
 }
 
-/// A preset's design tokens as CSS, generated from their typed values.
-async fn token_stylesheet(Path(file): Path<String>) -> Response {
-    let preset = file.strip_suffix(".css").and_then(themes::find);
-    match preset {
-        Some(preset) => (
+/// Token CSS, generated from typed values: a preset's, or the live design's.
+/// Drafts aren't served here, so nothing is public until it's applied.
+async fn token_stylesheet(State(state): State<AppState>, Path(file): Path<String>) -> Response {
+    let name = file.strip_suffix(".css").unwrap_or_default();
+    let css = match name.strip_prefix("design-") {
+        Some(id) => id.parse().ok().and_then(|id| state.active_design_css(id)),
+        None => themes::find(name).map(|preset| preset.tokens().to_css()),
+    };
+    match css {
+        Some(css) => (
             [
                 (header::CONTENT_TYPE, "text/css; charset=utf-8"),
                 (header::CACHE_CONTROL, "public, max-age=86400"),
             ],
-            preset.tokens().to_css(),
+            css,
         )
             .into_response(),
         None => (StatusCode::NOT_FOUND, "Not found").into_response(),

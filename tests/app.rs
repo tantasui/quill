@@ -1090,3 +1090,416 @@ async fn article_data_never_depends_on_the_look() {
     }
     assert_eq!(snapshot(&t).await, before);
 }
+
+const REFERO: &str = include_str!("../crates/quill-design/tests/fixtures/refero_style.md");
+const MESSY: &str = include_str!("../crates/quill-design/tests/fixtures/messy.md");
+const BOUNDARY: &str = "XDESIGNBOUNDARYX";
+
+impl TestApp {
+    /// Submits the import form as a browser would.
+    async fn import_design(&self, csrf: &str, source: &str, file: Option<&[u8]>) -> Res {
+        let mut body = Vec::new();
+        let mut text = |name: &str, value: &str| {
+            body.extend_from_slice(
+                format!(
+                    "--{BOUNDARY}\r\nContent-Disposition: form-data; name=\"{name}\"\r\n\r\n{value}\r\n"
+                )
+                .as_bytes(),
+            );
+        };
+        text("_csrf", csrf);
+        text("source", source);
+        body.extend_from_slice(
+            format!(
+                "--{BOUNDARY}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"DESIGN.md\"\r\nContent-Type: text/markdown\r\n\r\n"
+            )
+            .as_bytes(),
+        );
+        body.extend_from_slice(file.unwrap_or_default());
+        body.extend_from_slice(format!("\r\n--{BOUNDARY}--\r\n").as_bytes());
+        let req = self
+            .builder(Method::POST, "/blog/admin/appearance/design")
+            .header(
+                header::CONTENT_TYPE,
+                format!("multipart/form-data; boundary={BOUNDARY}"),
+            )
+            .body(Body::from(body))
+            .unwrap();
+        self.send(req).await
+    }
+
+    /// Imports a good design and returns the address of its review page.
+    async fn import_ok(&self, source: &str) -> String {
+        let res = self.import_design(&self.csrf, source, None).await;
+        assert_eq!(res.status, StatusCode::SEE_OTHER, "{}", res.body);
+        res.location().to_string()
+    }
+}
+
+fn stored_designs_query() -> &'static str {
+    "SELECT COUNT(*) FROM designs"
+}
+
+#[tokio::test]
+async fn importing_a_design_changes_nothing_until_it_is_applied() {
+    let t = TestApp::ready().await;
+    t.create_article("Readable", "Body text.", &[("tags", "one")])
+        .await;
+
+    let form = t.get("/blog/admin/appearance/design").await;
+    assert_eq!(form.status, StatusCode::OK);
+    let before = t.get("/blog/").await.body;
+    assert!(before.contains("/blog/static/tokens/editorial.css"));
+
+    let review_url = t.import_ok(REFERO).await;
+    assert!(review_url.starts_with("/blog/admin/appearance/design/"));
+    let id: i64 = review_url.rsplit('/').next().unwrap().parse().unwrap();
+
+    // The review page explains itself, with source lines and carets.
+    let review = t.get(&review_url).await;
+    assert_eq!(review.status, StatusCode::OK);
+    for expected in [
+        "Northwind Exchange",
+        "QD013",
+        "QD005",
+        "64-128px",
+        "^^^^^^^^",
+        "#e4f222",
+        "IBM Plex Sans",
+    ] {
+        assert!(review.body.contains(expected), "{expected}");
+    }
+
+    // Still a draft: the public blog and public token route don't have it.
+    assert_eq!(t.get("/blog/").await.body, before);
+    let public_css = format!("/blog/static/tokens/design-{id}.css");
+    assert_eq!(t.get(&public_css).await.status, StatusCode::NOT_FOUND);
+
+    // The preview shows real content wearing the draft, in either scheme.
+    for page in ["home", "article"] {
+        let url = format!("{review_url}/preview?page={page}&scheme=dark");
+        let preview = t.get(&url).await;
+        assert_eq!(preview.status, StatusCode::OK, "{page}");
+        assert!(preview.body.contains("Readable"), "{page}");
+        assert!(
+            preview
+                .body
+                .contains(&format!("{review_url}/tokens.css?scheme=dark")),
+            "{page}"
+        );
+    }
+    let dark = t.get(&format!("{review_url}/tokens.css?scheme=dark")).await;
+    assert!(dark.headers[header::CONTENT_TYPE]
+        .to_str()
+        .unwrap()
+        .starts_with("text/css"));
+    assert!(
+        !dark.body.contains("prefers-color-scheme"),
+        "the scheme is forced"
+    );
+    let light = t
+        .get(&format!("{review_url}/tokens.css?scheme=light"))
+        .await;
+    assert!(light.body.contains("--bg: #f4f2f0"));
+    assert_ne!(dark.body, light.body);
+
+    // Applying makes it live, keeping the layout.
+    let layout = t.state.look().layout;
+    let res = t
+        .post_form(&format!("{review_url}/apply"), &[("_csrf", &t.csrf)])
+        .await;
+    assert_eq!(res.location(), "/blog/admin/appearance?notice=design");
+    assert_eq!(t.state.look().layout, layout);
+    let home = t.get("/blog/").await.body;
+    assert!(home.contains(&public_css));
+    let css = t.get(&public_css).await;
+    assert_eq!(css.status, StatusCode::OK);
+    assert!(css.body.contains("--accent-fill: #e4f222"));
+    assert!(css.body.contains("--accent-text: #0c0a08"));
+    assert!(css.body.contains("--title-weight: 400"));
+    assert!(css
+        .body
+        .contains("/blog/static/fonts/ibm-plex-sans-latin-wght-normal.woff2"));
+
+    // The fonts it names are really served, and as fonts.
+    let font = t
+        .get("/blog/static/fonts/ibm-plex-sans-latin-wght-normal.woff2")
+        .await;
+    assert_eq!(font.status, StatusCode::OK);
+    assert_eq!(font.headers[header::CONTENT_TYPE], "font/woff2");
+    assert_eq!(
+        t.get("/blog/static/fonts/licenses/ibm-plex-sans.txt")
+            .await
+            .status,
+        StatusCode::OK
+    );
+
+    assert!(t
+        .get("/blog/admin/appearance")
+        .await
+        .body
+        .contains("imported design"));
+}
+
+#[tokio::test]
+async fn errors_block_a_design_and_are_explained() {
+    let t = TestApp::ready().await;
+    let res = t.import_design(&t.csrf, MESSY, None).await;
+    assert_eq!(res.status, StatusCode::UNPROCESSABLE_ENTITY);
+    for expected in ["QD010", "1.61:1", "can't be used", "notacolor"] {
+        assert!(res.body.contains(expected), "{expected}");
+    }
+    assert!(
+        res.body.contains("name: Messy"),
+        "the source stays in the box to fix"
+    );
+    let stored: i64 = sqlx::query_scalar(stored_designs_query())
+        .fetch_one(&t.state.db)
+        .await
+        .unwrap();
+    assert_eq!(stored, 0, "a design with errors is never stored");
+}
+
+#[tokio::test]
+async fn the_import_form_rejects_bad_input() {
+    let t = TestApp::ready().await;
+    assert_eq!(
+        t.import_design("", REFERO, None).await.status,
+        StatusCode::FORBIDDEN
+    );
+
+    let empty = t.import_design(&t.csrf, "  \n ", None).await;
+    assert_eq!(empty.status, StatusCode::BAD_REQUEST);
+    assert!(empty.body.contains("Paste a DESIGN.md"));
+
+    let not_text = t
+        .import_design(&t.csrf, "", Some(&[0x89, b'P', b'N', b'G', 0xff, 0xfe]))
+        .await;
+    assert_eq!(not_text.status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert!(not_text.body.contains("QD002"));
+
+    let large = "x".repeat(quill_design::MAX_SOURCE_BYTES + 1);
+    let too_large = t.import_design(&t.csrf, &large, None).await;
+    assert_eq!(too_large.status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert!(too_large.body.contains("QD001"));
+    assert!(!too_large.body.contains(&large[..1000]), "not echoed back");
+
+    let huge = "x".repeat(3 * 1024 * 1024);
+    let beyond_the_limit = t.import_design(&t.csrf, &huge, None).await;
+    assert_eq!(beyond_the_limit.status, StatusCode::PAYLOAD_TOO_LARGE);
+    assert!(beyond_the_limit.body.contains("256 KB"));
+
+    // An uploaded file wins over the text box.
+    let uploaded = t
+        .import_design(&t.csrf, MESSY, Some(REFERO.as_bytes()))
+        .await;
+    assert_eq!(uploaded.status, StatusCode::SEE_OTHER);
+}
+
+#[tokio::test]
+async fn hostile_files_cannot_inject_markup_into_the_dashboard() {
+    let t = TestApp::ready().await;
+    // The name and a source excerpt are the places raw text reaches the page.
+    let source = "---\nname: \"<script>alert(1)</script>\"\n---\n\n- text: #111111\n- background: #ffffff\n\n## Rules\n\n- Never <img src=x onerror=alert(2)> here\n";
+    let review = t.get(&t.import_ok(source).await).await;
+    assert_eq!(review.status, StatusCode::OK);
+    assert!(!review.body.contains("<script>alert"));
+    assert!(!review.body.contains("<img src=x"));
+    assert!(review.body.contains("&lt;script&gt;alert(1)"));
+    assert!(review.body.contains("&lt;img src=x"));
+}
+
+#[tokio::test]
+async fn designs_can_be_cancelled_replaced_and_reverted() {
+    let t = TestApp::ready().await;
+    let one = "- text: #111111\n- background: #ffffff\n";
+    let two = "- text: #222222\n- background: #fefefe\n";
+
+    // Cancelling a draft removes it. Starting another replaces an abandoned one.
+    let draft = t.import_ok(one).await;
+    let res = t
+        .post_form(&format!("{draft}/cancel"), &[("_csrf", &t.csrf)])
+        .await;
+    assert_eq!(res.location(), "/blog/admin/appearance/design");
+    assert_eq!(t.get(&draft).await.status, StatusCode::NOT_FOUND);
+    t.import_ok(one).await;
+    let first = t.import_ok(one).await;
+    let stored: i64 = sqlx::query_scalar(stored_designs_query())
+        .fetch_one(&t.state.db)
+        .await
+        .unwrap();
+    assert_eq!(stored, 1, "abandoned drafts don't pile up");
+
+    t.post_form(&format!("{first}/apply"), &[("_csrf", &t.csrf)])
+        .await;
+    let second = t.import_ok(two).await;
+    t.post_form(&format!("{second}/apply"), &[("_csrf", &t.csrf)])
+        .await;
+    let first_id = first.rsplit('/').next().unwrap();
+    let second_id = second.rsplit('/').next().unwrap();
+    assert!(t
+        .get("/blog/")
+        .await
+        .body
+        .contains(&format!("design-{second_id}.css")));
+
+    // Both are in the history. One click brings back the earlier one.
+    let page = t.get("/blog/admin/appearance/design").await.body;
+    assert!(page.contains(&first) && page.contains(&second));
+    assert!(t.get(&first).await.body.contains("Use this design again"));
+    t.post_form(&format!("{first}/apply"), &[("_csrf", &t.csrf)])
+        .await;
+    let home = t.get("/blog/").await.body;
+    assert!(home.contains(&format!("design-{first_id}.css")));
+    let replaced = format!("/blog/static/tokens/design-{second_id}.css");
+    assert_eq!(t.get(&replaced).await.status, StatusCode::NOT_FOUND);
+
+    // Cancelling an applied design doesn't delete history.
+    t.post_form(&format!("{second}/cancel"), &[("_csrf", &t.csrf)])
+        .await;
+    assert_eq!(t.get(&second).await.status, StatusCode::OK);
+
+    // Back to the preset's tokens, keeping a customized layout.
+    t.state.save_layout(customized_layout()).await.unwrap();
+    let res = t
+        .post_form("/blog/admin/appearance/design/clear", &[("_csrf", &t.csrf)])
+        .await;
+    assert_eq!(
+        res.location(),
+        "/blog/admin/appearance?notice=design_removed"
+    );
+    assert!(t
+        .get("/blog/")
+        .await
+        .body
+        .contains("/blog/static/tokens/editorial.css"));
+    assert!(t.state.has_custom_layout());
+
+    // Choosing a preset also replaces the design.
+    t.post_form(&format!("{first}/apply"), &[("_csrf", &t.csrf)])
+        .await;
+    t.post_form(
+        "/blog/admin/themes",
+        &[("_csrf", &t.csrf), ("theme", "gazette")],
+    )
+    .await;
+    assert!(t
+        .get("/blog/")
+        .await
+        .body
+        .contains("/blog/static/tokens/gazette.css"));
+}
+
+#[tokio::test]
+async fn a_live_design_survives_a_restart_and_bad_rows_are_ignored() {
+    let t = TestApp::ready().await;
+    let review = t.import_ok(REFERO).await;
+    t.post_form(&format!("{review}/apply"), &[("_csrf", &t.csrf)])
+        .await;
+    let id: i64 = review.rsplit('/').next().unwrap().parse().unwrap();
+
+    let restart = || {
+        AppState::new(
+            t.state.db.clone(),
+            t.state.data_dir.clone(),
+            t.state.listen.clone(),
+            None,
+        )
+    };
+    let restarted = restart().await.unwrap();
+    assert_eq!(restarted.look().design, Some(id));
+    assert!(restarted
+        .active_design_css(id)
+        .unwrap()
+        .contains("--bg: #f4f2f0"));
+
+    sqlx::query("UPDATE designs SET compiled = '{\"tokens\": 1}' WHERE id = ?")
+        .bind(id)
+        .execute(&t.state.db)
+        .await
+        .unwrap();
+    let restarted = restart().await.unwrap();
+    assert_eq!(restarted.look().design, None, "falls back to the preset");
+    assert_eq!(t.get(&review).await.status, StatusCode::CONFLICT);
+}
+
+#[tokio::test]
+async fn every_preset_and_layout_works_with_a_design() {
+    let t = TestApp::ready().await;
+    t.create_article(
+        "Covered",
+        "Text.",
+        &[("tags", "one"), ("cover_image", "/media/a.png")],
+    )
+    .await;
+    let review = t.import_ok(REFERO).await;
+    let id = review.rsplit('/').next().unwrap();
+    let mut sequence = Sequence(99);
+    for preset in quill::themes::ALL {
+        t.post_form(
+            "/blog/admin/themes",
+            &[("_csrf", &t.csrf), ("theme", preset.id)],
+        )
+        .await;
+        t.post_form(&format!("{review}/apply"), &[("_csrf", &t.csrf)])
+            .await;
+        for _ in 0..10 {
+            let fields = layout_form(
+                &t.csrf,
+                &[
+                    ("header_variant", sequence.pick(&HEADERS)),
+                    ("feed_variant", sequence.pick(&FEEDS)),
+                    ("tag_rail", sequence.pick(&RAILS)),
+                ],
+            );
+            t.post_form("/blog/admin/appearance", &fields).await;
+            for path in ["/blog/", "/blog/posts/covered", "/blog/archive"] {
+                let page = t.get(path).await;
+                assert_eq!(page.status, StatusCode::OK, "{} {path}", preset.id);
+                assert!(
+                    page.body.contains(&format!("design-{id}.css")),
+                    "{} {path}",
+                    preset.id
+                );
+                assert!(page
+                    .body
+                    .contains(&format!("/static/themes/{}.css", preset.id)));
+            }
+        }
+    }
+}
+
+#[tokio::test]
+async fn article_data_never_depends_on_a_design() {
+    let t = TestApp::ready().await;
+    t.create_article("Stays", "Body.", &[("tags", "kept")])
+        .await;
+    async fn snapshot(t: &TestApp) -> Vec<(String, String, String)> {
+        sqlx::query_as("SELECT title, content, updated_at FROM articles")
+            .fetch_all(&t.state.db)
+            .await
+            .unwrap()
+    }
+    let before = snapshot(&t).await;
+    let review = t.import_ok(REFERO).await;
+    t.post_form(&format!("{review}/apply"), &[("_csrf", &t.csrf)])
+        .await;
+    t.post_form("/blog/admin/appearance/design/clear", &[("_csrf", &t.csrf)])
+        .await;
+    assert_eq!(snapshot(&t).await, before);
+}
+
+#[tokio::test]
+async fn design_pages_need_a_session() {
+    let mut t = TestApp::ready().await;
+    let review = t.import_ok(REFERO).await;
+    t.cookie = None;
+    for path in [
+        "/blog/admin/appearance/design".to_string(),
+        review.clone(),
+        format!("{review}/preview"),
+        format!("{review}/tokens.css"),
+    ] {
+        assert_eq!(t.get(&path).await.location(), "/blog/admin/login", "{path}");
+    }
+}

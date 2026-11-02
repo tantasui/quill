@@ -128,6 +128,39 @@ impl Diagnostic {
     }
 }
 
+/// The source line a span points at, for showing it with a caret underneath.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Excerpt {
+    pub text: String,
+    /// Characters before the caret, within `text`.
+    pub caret_offset: usize,
+    pub caret_len: usize,
+}
+
+impl Span {
+    /// Cuts the line this span points at out of `source`. Long lines are
+    /// narrowed to a window around the span.
+    pub fn excerpt(self, source: &str) -> Option<Excerpt> {
+        const WINDOW: usize = 100;
+        let line = source
+            .split('\n')
+            .nth(self.line.checked_sub(1)? as usize)?
+            .trim_end_matches('\r');
+        let chars: Vec<char> = line.chars().collect();
+        let start = self.column.saturating_sub(1) as usize;
+        let from = start.saturating_sub(WINDOW / 2);
+        let to = (start + self.len as usize + WINDOW / 2).min(chars.len());
+        if from > chars.len() {
+            return None;
+        }
+        Some(Excerpt {
+            text: chars[from..to].iter().collect(),
+            caret_offset: start - from,
+            caret_len: (self.len as usize).clamp(1, WINDOW),
+        })
+    }
+}
+
 /// Converts byte offsets into lines and columns. Everything is looked up rather
 /// than scanned, so thousands of tokens on one enormous line stay fast.
 pub(crate) struct LineIndex<'a> {
@@ -206,6 +239,60 @@ mod tests {
             r#"{"code":"QD005","level":"warning","message":"bad","help":"fix it"}"#
         );
         assert_eq!(serde_json::from_str::<Diagnostic>(&json).unwrap(), d);
+    }
+
+    #[test]
+    fn cuts_excerpts_around_a_span() {
+        let source = "first\r\n  --gap: 64-128px;\nlast";
+        let span = Span {
+            line: 2,
+            column: 10,
+            len: 8,
+        };
+        let excerpt = span.excerpt(source).unwrap();
+        assert_eq!(excerpt.text, "  --gap: 64-128px;");
+        assert_eq!((excerpt.caret_offset, excerpt.caret_len), (9, 8));
+        assert_eq!(&excerpt.text[9..17], "64-128px");
+
+        // A very long line is narrowed, and the caret still lines up.
+        let long = format!("{}#badvalue{}", "x".repeat(5000), "y".repeat(5000));
+        let span = Span {
+            line: 1,
+            column: 5001,
+            len: 9,
+        };
+        let excerpt = span.excerpt(&long).unwrap();
+        assert!(excerpt.text.len() < 200);
+        let at: String = excerpt
+            .text
+            .chars()
+            .skip(excerpt.caret_offset)
+            .take(9)
+            .collect();
+        assert_eq!(at, "#badvalue");
+
+        // A span that doesn't match this source is harmless.
+        assert!(Span {
+            line: 99,
+            column: 1,
+            len: 1
+        }
+        .excerpt(source)
+        .is_none());
+        assert!(Span {
+            line: 0,
+            column: 1,
+            len: 1
+        }
+        .excerpt(source)
+        .is_none());
+        assert!(Span {
+            line: 1,
+            column: 999,
+            len: 1
+        }
+        .excerpt(source)
+        .is_none());
     }
 
     #[test]

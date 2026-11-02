@@ -2,6 +2,7 @@ pub mod account;
 pub mod appearance;
 pub mod articles;
 pub mod dashboard;
+pub mod design;
 pub mod integration;
 pub mod login;
 pub mod media;
@@ -65,6 +66,8 @@ fn notice_text(key: Option<&str>) -> Option<&'static str> {
         "deleted" => "Article deleted.",
         "theme" => "Preset applied. Your articles now use the new look.",
         "layout" => "Layout saved.",
+        "design" => "Design applied. Your blog now uses it, on your current layout.",
+        "design_removed" => "Design removed. Your blog is back to its preset's colors and fonts.",
         "settings" => "Settings saved.",
         "password" => "Password changed. Other devices have been signed out.",
         "uploaded" => "Upload complete.",

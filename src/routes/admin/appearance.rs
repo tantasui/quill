@@ -64,6 +64,13 @@ fn appearance_context(state: &AppState, s: &Settings, user: &AdminUser) -> Ctx {
             .collect::<Vec<_>>()),
     );
     ctx.insert("customized".into(), json!(state.has_custom_layout()));
+    ctx.insert("has_design".into(), json!(look.design.is_some()));
+    ctx.insert(
+        "design_url".into(),
+        json!(look
+            .design
+            .map(|id| format!("{}/admin/appearance/design/{id}", s.base_path))),
+    );
     ctx.insert("sections".into(), json!(home_sections(&look.layout)));
     ctx.insert("layout".into(), json!(look.layout));
     ctx
@@ -190,8 +197,22 @@ pub async fn preview_layout(
         }
     };
     let label = "Previewing your layout. It hasn't been saved.";
+    render_preview(&state, &s, &look, &form.page, label, None).await
+}
+
+/// Renders a home or article page through the real templates, for a preview
+/// frame. `tokens_url` swaps in a stylesheet that isn't live yet. Falls back to
+/// sample content on a blog with nothing published.
+pub(super) async fn render_preview(
+    state: &AppState,
+    s: &Settings,
+    look: &Look,
+    page: &str,
+    label: &str,
+    tokens_url: Option<String>,
+) -> AppResult<Response> {
     let latest = models::list_published(&state.db, s.posts_per_page, 0).await?;
-    if form.page == "article" {
+    let (name, mut ctx) = if page == "article" {
         let (article, tags) = match latest.first() {
             Some(article) => {
                 let tags = models::tags_for(&state.db, &[article.id])
@@ -202,25 +223,27 @@ pub async fn preview_layout(
             }
             None => sample_article_data().swap_remove(0),
         };
-        let mut ctx =
-            public::article_context_with_tags(&state, &s, &look, &article, &tags, true).await?;
-        ctx.insert("preview_label".into(), json!(label));
-        ctx.insert("noindex".into(), json!(true));
-        return Ok(public::render_page(&state, "article", &ctx)?.into_response());
-    }
-    let mut ctx = public::base_context(&state, &s, &look).await?;
-    let views = if latest.is_empty() {
-        sample_articles(&s)
+        let ctx = public::article_context_with_tags(state, s, look, &article, &tags, true).await?;
+        ("article", ctx)
     } else {
-        public::article_views(&state, &s, &latest).await?
+        let mut ctx = public::base_context(state, s, look).await?;
+        let views = if latest.is_empty() {
+            sample_articles(s)
+        } else {
+            public::article_views(state, s, &latest).await?
+        };
+        public::insert_home_articles(&mut ctx, &look.layout, views, true);
+        ctx.insert("pagination".into(), json!({"current": 1, "total": 1}));
+        ctx.insert("page_title".into(), json!(s.site_name));
+        ctx.insert("preview".into(), json!(true));
+        ("index", ctx)
     };
-    public::insert_home_articles(&mut ctx, &look.layout, views, true);
-    ctx.insert("pagination".into(), json!({"current": 1, "total": 1}));
-    ctx.insert("page_title".into(), json!(s.site_name));
-    ctx.insert("preview".into(), json!(true));
     ctx.insert("preview_label".into(), json!(label));
     ctx.insert("noindex".into(), json!(true));
-    Ok(public::render_page(&state, "index", &ctx)?.into_response())
+    if let Some(url) = tokens_url {
+        ctx.insert("tokens_url".into(), json!(url));
+    }
+    Ok(public::render_page(state, name, &ctx)?.into_response())
 }
 
 #[derive(Deserialize, Default)]
@@ -246,6 +269,7 @@ pub async fn activate_theme(
     s.theme = theme.id.to_string();
     state.save_settings(s.clone()).await?;
     state.clear_layout().await?;
+    state.clear_design().await?;
     Ok(redirect(&s, "/admin/themes?notice=theme"))
 }
 

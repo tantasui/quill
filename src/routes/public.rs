@@ -33,6 +33,17 @@ pub async fn base_context(state: &AppState, s: &Settings, look: &Look) -> AppRes
         }),
     );
     ctx.insert("base".into(), json!(s.base_path));
+    let tokens = match look.design {
+        Some(id) => format!("design-{id}"),
+        None => look.preset.clone(),
+    };
+    ctx.insert(
+        "tokens_url".into(),
+        json!(format!(
+            "{}/static/tokens/{tokens}.css?v={VERSION}",
+            s.base_path
+        )),
+    );
     ctx.insert("theme".into(), json!(look.preset));
     ctx.insert("layout".into(), json!(look.layout));
     ctx.insert("version".into(), json!(VERSION));

@@ -14,7 +14,7 @@ mod shadow;
 mod tokens;
 
 pub use color::Color;
-pub use compiler::diagnostic::{Code, Diagnostic, Level, Span};
+pub use compiler::diagnostic::{Code, Diagnostic, Excerpt, Level, Span};
 pub use compiler::{
     compile, compile_bytes, Compilation, CompiledDesign, Scheme, TokenOrigin, MAX_SOURCE_BYTES,
 };

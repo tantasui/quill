@@ -25,14 +25,14 @@
       <iframe src="{{ t.preview_url }}" title="{{ t.name }} preset preview" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
     </div>
     <div class="theme-body">
-      <h3>{{ t.name }}{% if t.active %} <span class="badge badge-published">{{ "Active, customized" if customized else "Active" }}</span>{% endif %}</h3>
+      <h3>{{ t.name }}{% if t.active %} <span class="badge badge-published">{{ "Active, customized" if customized or has_design else "Active" }}</span>{% endif %}</h3>
       <p>{{ t.description }}</p>
       <div class="theme-actions">
         <a class="btn btn-small" href="{{ t.preview_url }}" target="_blank" rel="noopener">Full preview ↗</a>
-        {% if not t.active or customized %}
+        {% if not t.active or customized or has_design %}
         <form method="post" action="{{ base }}/admin/themes">
           <input type="hidden" name="_csrf" value="{{ csrf }}">
-          <button type="submit" name="theme" value="{{ t.id }}" class="btn btn-small btn-primary"{% if customized %} data-confirm="This replaces your customized layout with the {{ t.name }} layout. Your articles aren't affected."{% endif %}>{{ "Reset to " ~ t.name if t.active else "Use " ~ t.name }}</button>
+          <button type="submit" name="theme" value="{{ t.id }}" class="btn btn-small btn-primary"{% if customized %} data-confirm="This replaces your customized layout with the {{ t.name }} layout. Your articles aren't affected."{% elif has_design %} data-confirm="This replaces your imported design with the {{ t.name }} preset's colors and fonts. You can reapply it from Import a design."{% endif %}>{{ "Reset to " ~ t.name if t.active else "Use " ~ t.name }}</button>
         </form>
         {% endif %}
       </div>
@@ -40,6 +40,23 @@
   </article>
   {% endfor %}
 </div>
+
+<h2 class="section-heading">Design</h2>
+<section class="card design-card">
+  {% if has_design %}
+  <p>Your blog is using an <a href="{{ design_url }}">imported design</a> for its colors and fonts, on the layout below.</p>
+  <div class="layout-actions">
+    <a class="btn" href="{{ base }}/admin/appearance/design">Import another</a>
+    <form method="post" action="{{ base }}/admin/appearance/design/clear">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <button type="submit" class="btn btn-quiet">Back to the preset's colors</button>
+    </form>
+  </div>
+  {% else %}
+  <p>Have a DESIGN.md? Paste it and your blog takes that look, on the layout you arrange below.</p>
+  <div class="layout-actions"><a class="btn" href="{{ base }}/admin/appearance/design">Import a design</a></div>
+  {% endif %}
+</section>
 
 <h2 class="section-heading">Layout</h2>
 <form method="post" action="{{ base }}/admin/appearance" class="layout-editor" id="layout-form">

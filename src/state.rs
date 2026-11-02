@@ -4,10 +4,11 @@ use std::sync::{Arc, RwLock};
 
 use anyhow::Result;
 use chrono::Utc;
-use quill_design::Layout;
+use quill_design::{CompiledDesign, Layout};
 use sqlx::SqlitePool;
 
 use crate::auth::{self, LoginLimiter};
+use crate::designs;
 use crate::render::Views;
 use crate::settings::Settings;
 use crate::themes::{self, Theme};
@@ -20,6 +21,8 @@ pub struct AppState(Arc<Inner>);
 pub struct Look {
     pub preset: String,
     pub layout: Layout,
+    /// The imported design supplying the tokens, instead of the preset's own.
+    pub design: Option<i64>,
 }
 
 impl Look {
@@ -27,6 +30,7 @@ impl Look {
         Look {
             preset: preset.id.to_string(),
             layout: preset.layout().clone(),
+            design: None,
         }
     }
 }
@@ -41,6 +45,8 @@ pub struct Inner {
     settings: RwLock<Settings>,
     /// A customized layout and the preset it was customized from, if any.
     custom_layout: RwLock<Option<(String, Layout)>>,
+    /// The live imported design, if any.
+    active_design: RwLock<Option<(i64, CompiledDesign)>>,
     /// Present until the first administrator account has been created.
     setup_code: RwLock<Option<String>>,
 }
@@ -63,6 +69,7 @@ impl AppState {
     ) -> Result<Self> {
         let settings = Settings::load(&db).await?;
         let custom_layout = load_custom_layout(&db).await?;
+        let active_design = load_active_design(&db).await?;
         let users: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM users")
             .fetch_one(&db)
             .await?;
@@ -75,6 +82,7 @@ impl AppState {
             login_limiter: LoginLimiter::default(),
             settings: RwLock::new(settings),
             custom_layout: RwLock::new(custom_layout),
+            active_design: RwLock::new(active_design),
             setup_code: RwLock::new(setup_code),
         })))
     }
@@ -92,7 +100,37 @@ impl AppState {
                 look.layout = layout.clone();
             }
         }
+        look.design = self
+            .active_design
+            .read()
+            .unwrap()
+            .as_ref()
+            .map(|(id, _)| *id);
         look
+    }
+
+    /// The live design's stylesheet, if `id` is the live one.
+    pub fn active_design_css(&self, id: i64) -> Option<String> {
+        let base_path = self.settings().base_path;
+        let active = self.active_design.read().unwrap();
+        active
+            .as_ref()
+            .filter(|(active_id, _)| *active_id == id)
+            .map(|(_, design)| design.to_css(&base_path))
+    }
+
+    /// Makes a stored design live.
+    pub async fn apply_design(&self, id: i64, design: CompiledDesign) -> Result<()> {
+        designs::activate(&self.db, id).await?;
+        *self.active_design.write().unwrap() = Some((id, design));
+        Ok(())
+    }
+
+    /// Goes back to the preset's own tokens.
+    pub async fn clear_design(&self) -> Result<()> {
+        designs::deactivate(&self.db).await?;
+        *self.active_design.write().unwrap() = None;
+        Ok(())
     }
 
     pub fn has_custom_layout(&self) -> bool {
@@ -169,4 +207,11 @@ async fn load_custom_layout(db: &SqlitePool) -> Result<Option<(String, Layout)>>
             }
         }),
     )
+}
+
+/// Reads the live design. One that no longer validates is ignored, like a bad
+/// stored layout, so the blog keeps working on its preset's tokens.
+async fn load_active_design(db: &SqlitePool) -> Result<Option<(i64, CompiledDesign)>> {
+    let stored = designs::active(db).await?;
+    Ok(stored.and_then(|row| row.design().map(|design| (row.id, design))))
 }

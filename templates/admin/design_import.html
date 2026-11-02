@@ -1,0 +1,46 @@
+{% extends "admin/base.html" %}
+{% block title %}Import a design{% endblock %}
+{% block content %}
+<div class="editor-crumbs"><a href="{{ base }}/admin/appearance">← Appearance</a></div>
+<div class="page-head">
+  <h1>Import a design</h1>
+</div>
+<p class="lead">Paste the DESIGN.md you'd give your coding agent. Quill takes its colors, fonts and shapes and uses them on the layout you've arranged. You'll see exactly what it found, and a preview, before anything changes.</p>
+
+{% if message %}<div class="alert alert-error" role="alert">{{ message }}</div>{% endif %}
+{% if failed and diagnostics %}
+<div class="alert alert-error" role="alert">This design can't be used until the errors below are fixed.</div>
+<section class="card">
+  <h2>What was found</h2>
+  {% include "admin/_diagnostics.html" %}
+</section>
+{% endif %}
+
+<form method="post" action="{{ base }}/admin/appearance/design" enctype="multipart/form-data" class="card stack">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <div class="field">
+    <label for="source">DESIGN.md</label>
+    <textarea id="source" name="source" rows="16" class="mono-text" spellcheck="false" placeholder="Paste the file here">{{ source }}</textarea>
+  </div>
+  <div class="field">
+    <label for="file">Or upload a file</label>
+    <input type="file" id="file" name="file" accept=".md,.markdown,.txt,text/markdown,text/plain" aria-describedby="file_help">
+    <p class="help" id="file_help">Markdown, up to {{ max_kb }} KB. A chosen file is used instead of the text box.</p>
+  </div>
+  <div><button type="submit" class="btn btn-primary">Check this design</button></div>
+</form>
+
+{% if history %}
+<section class="card">
+  <h2>Earlier designs</h2>
+  <ul class="item-list">
+    {% for d in history %}
+    <li>
+      <a href="{{ d.review_url }}" class="item-title">{{ d.name }}</a>
+      <span class="item-meta">{% if d.active %}<span class="badge badge-published">Live</span> {% endif %}Applied {{ d.applied }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

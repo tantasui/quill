@@ -128,34 +128,50 @@ impl Diagnostic {
     }
 }
 
-/// Converts byte offsets into lines and columns.
+/// Converts byte offsets into lines and columns. Everything is looked up rather
+/// than scanned, so thousands of tokens on one enormous line stay fast.
 pub(crate) struct LineIndex<'a> {
     source: &'a str,
     line_starts: Vec<usize>,
+    /// Offsets of UTF-8 continuation bytes, which don't count toward a column.
+    continuation_bytes: Vec<usize>,
 }
 
 impl<'a> LineIndex<'a> {
     pub(crate) fn new(source: &'a str) -> Self {
         let mut line_starts = vec![0];
         line_starts.extend(source.match_indices('\n').map(|(i, _)| i + 1));
+        let continuation_bytes = source
+            .bytes()
+            .enumerate()
+            .filter(|(_, byte)| byte & 0xC0 == 0x80)
+            .map(|(i, _)| i)
+            .collect();
         LineIndex {
             source,
             line_starts,
+            continuation_bytes,
         }
+    }
+
+    /// How many characters lie between two byte offsets.
+    fn chars_between(&self, start: usize, end: usize) -> usize {
+        let before = |offset| self.continuation_bytes.partition_point(|&i| i < offset);
+        (end - start) - (before(end) - before(start))
     }
 
     /// The span of `len` bytes starting at byte `offset`, clipped to one line.
     pub(crate) fn span(&self, offset: usize, len: usize) -> Span {
         let offset = floor_char_boundary(self.source, offset.min(self.source.len()));
         let line = self.line_starts.partition_point(|&start| start <= offset) - 1;
-        let start = self.line_starts[line];
-        let rest = &self.source[offset..];
-        let line_end = rest.find(['\n', '\r']).unwrap_or(rest.len());
-        let end = floor_char_boundary(rest, len.min(line_end));
+        let end = floor_char_boundary(self.source, (offset + len).min(self.source.len()));
+        let visible = self.source[offset..end]
+            .find(['\n', '\r'])
+            .map_or(end, |i| offset + i);
         Span {
             line: line as u32 + 1,
-            column: self.source[start..offset].chars().count() as u32 + 1,
-            len: rest[..end].chars().count().max(1) as u32,
+            column: self.chars_between(self.line_starts[line], offset) as u32 + 1,
+            len: self.chars_between(offset, visible).max(1) as u32,
         }
     }
 }

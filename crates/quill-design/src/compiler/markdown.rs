@@ -193,9 +193,14 @@ impl Walker<'_> {
         ])
     }
 
-    /// The caret position for `needle` within a block, or the block's start.
+    /// The caret position for `needle` near a block's start, or the start itself.
+    /// The window stops a missing needle from scanning the rest of the file.
     fn locate(&self, needle: &str, offset: usize) -> Span {
-        let found = self.source[offset..].find(needle).filter(|i| *i < 4096);
+        let mut end = (offset + 4096).min(self.source.len());
+        while !self.source.is_char_boundary(end) {
+            end -= 1;
+        }
+        let found = self.source[offset..end].find(needle);
         self.index.span(offset + found.unwrap_or(0), needle.len())
     }
 

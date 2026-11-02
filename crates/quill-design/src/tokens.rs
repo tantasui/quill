@@ -191,7 +191,7 @@ mod tests {
             );
         }
         let mut bad = good.clone();
-        bad["light"]["bg"] = "red".into();
+        bad["light"]["bg"] = "notacolor".into();
         assert!(serde_json::from_value::<DesignTokens>(bad).is_err());
         let mut bad = good;
         bad["unknown_token"] = "1px".into();

@@ -9,6 +9,8 @@ mod css;
 #[allow(dead_code)]
 mod extract;
 #[allow(dead_code)]
+mod markdown;
+#[allow(dead_code)]
 mod roles;
 #[allow(dead_code)]
 mod yaml;

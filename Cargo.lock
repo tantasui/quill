@@ -1579,6 +1579,7 @@ dependencies = [
 name = "quill-design"
 version = "0.1.0"
 dependencies = [
+ "pulldown-cmark",
  "saphyr-parser",
  "serde",
  "serde_json",

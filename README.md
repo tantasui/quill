@@ -72,6 +72,8 @@ quill backup [--out DIR]      Snapshot database + media (safe while running)
 quill restore DIR             Restore a backup (stop the server first)
 quill export [--out DIR]      Export articles as Markdown with front matter
 quill reset-password [USER]   Set a new admin password
+quill design check FILE       Check a DESIGN.md: diagnostics and an exit code
+quill design compile FILE     Compile a DESIGN.md to CSS
 ```
 
 | Setting | Flag | Environment | Default |

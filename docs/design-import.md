@@ -60,6 +60,68 @@ Colors for things Quill doesn't draw, such as error states, are listed as unused
 
 **Rules in prose.** A few are recognized and applied: "never bold" or "only weight 400" (heading weight), "no box-shadow" (shadows), "sharp corners" (radius) and "page max-width: 1200px" (page width). Other rules are listed as not applied, so you know what to check yourself.
 
+## From the terminal
+
+The `quill design` commands run the same compiler as the dashboard, so the two always agree. They don't need a blog or a data folder, so they work in CI or on a laptop.
+
+### Checking a file
+
+```console
+$ quill design check DESIGN.md
+error[QD010]: text #cccccc on background #ffffff has a contrast of 1.61:1, below the 4.5:1 needed to read comfortably
+ --> DESIGN.md:4:9
+  |
+4 |   text: "#cccccc"
+  |         ^^^^^^^
+  |
+  = help: Make the text darker or the background lighter (or the reverse for a dark design).
+
+error: this design can't be applied (1 error, 0 warnings, 0 notes)
+```
+
+| Exit code | Meaning |
+|---|---|
+| 0 | No errors. There may be warnings and notes. |
+| 1 | The design has errors. |
+| 2 | Quill couldn't give an answer, for example because the file is missing or an argument is wrong. |
+
+Output is colored in a terminal, unless `NO_COLOR` is set. Control characters from the file are shown as `�`, so a file can't send commands to your terminal.
+
+With `--json`, the same report is printed as a single JSON object:
+
+```json
+{
+  "file": "DESIGN.md",
+  "valid": false,
+  "errors": 1,
+  "warnings": 0,
+  "notes": 0,
+  "diagnostics": [
+    {
+      "code": "QD010",
+      "level": "error",
+      "message": "text #cccccc on background #ffffff has a contrast of 1.61:1, below the 4.5:1 needed to read comfortably",
+      "span": { "line": 4, "column": 9, "len": 7 },
+      "help": "Make the text darker or the background lighter (or the reverse for a dark design)."
+    }
+  ]
+}
+```
+
+`span` and `help` are left out when a diagnostic doesn't have them. Columns count characters, starting from 1. Values from the file appear in messages exactly as written, so clean them before printing them somewhere that matters.
+
+### Compiling a file
+
+```sh
+quill design compile DESIGN.md                                  # print the CSS
+quill design compile DESIGN.md --out tokens.css                 # write it to a file
+quill design compile DESIGN.md --out tokens.css --base-path /blog
+```
+
+The result is the stylesheet Quill would serve: `@font-face` rules for any bundled fonts, then `:root` tokens for light and dark. Use `--base-path` if your blog isn't at the root of its domain, so the font addresses are right.
+
+Errors and warnings go to standard error, so `> tokens.css` always gives you only CSS. Notes appear only in `check`. If the design has errors, nothing is written and any existing `--out` file is left alone. Exit codes are the same as for `check`.
+
 ## Diagnostic codes
 
 The codes are stable, so they can be searched for. Errors stop a design from being applied; warnings and notes don't.

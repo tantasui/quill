@@ -6,6 +6,7 @@ description = "Quill's design model: typed design tokens, layouts and presets. N
 license = "MIT"
 
 [dependencies]
+saphyr-parser = "0.3"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 toml = { version = "0.8", default-features = false, features = ["parse"] }

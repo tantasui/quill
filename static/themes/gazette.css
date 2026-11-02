@@ -1,5 +1,5 @@
 /* Gazette finishing touches: a traditional publication. */
-:root { --font-ui: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif; }
+:root { --font-ui: var(--design-font-ui, "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif); }
 
 .post-meta { margin: 0.6rem 0 0; font-family: var(--font-ui); font-size: 0.78rem; color: var(--muted); }
 .post-meta .sep { margin: 0 0.4em; }
@@ -9,8 +9,8 @@
 .post-list { list-style: none; margin: 0 auto; padding: 0; max-width: 48rem; }
 .post-item { padding: 1.75rem 0; border-bottom: 1px solid var(--border); }
 .post-item:first-child { padding-top: 0; }
-.post-cover img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; margin-bottom: 1rem; }
-.post-title { font-family: var(--font-heading); font-size: 1.7rem; line-height: 1.15; margin: 0; }
+.post-cover img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; margin-bottom: 1rem; border-radius: var(--image-radius, 0); }
+.post-title { font-family: var(--font-heading); font-weight: var(--title-weight, 700); font-size: 1.7rem; line-height: 1.15; margin: 0; }
 .post-title a { color: var(--text); text-decoration: none; }
 .post-title a:hover { color: var(--accent-text); }
 .post-excerpt { margin: 0.6rem 0 0; color: var(--muted); }
@@ -19,11 +19,11 @@
 .article-header { text-align: center; margin-bottom: 2rem; }
 .article-kicker { margin: 0 0 0.9rem; font-family: var(--font-ui); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
 .article-kicker a { color: var(--accent-text); text-decoration: none; }
-.article-title { font-family: var(--font-heading); font-size: clamp(2.2rem, 6vw, 3.6rem); line-height: 1.05; margin: 0; font-weight: 800; text-wrap: balance; }
+.article-title { font-family: var(--font-heading); font-size: clamp(2.2rem, 6vw, 3.6rem); line-height: 1.05; margin: 0; font-weight: var(--title-weight, 800); text-wrap: balance; }
 .article-dek { font-size: 1.3rem; line-height: 1.45; color: var(--muted); margin: 1rem 0 0; }
 .article-header .post-meta { margin-top: 1.25rem; padding: 0.7rem 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
 .article-cover { margin: 0 0 2.25rem; }
-.article-cover img { display: block; width: 100%; }
+.article-cover img { display: block; width: 100%; border-radius: var(--image-radius, 0); }
 .prose { font-size: 1.15rem; line-height: 1.7; }
 .prose h2, .prose h3 { font-family: var(--font-heading); }
 .article-body > p:first-of-type::first-letter {
@@ -43,10 +43,10 @@
 
 .page-header { text-align: center; margin: 0 auto 2.5rem; max-width: 48rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--border); }
 .page-kicker { margin: 0; font-family: var(--font-ui); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-text); }
-.page-title { font-family: var(--font-heading); font-size: clamp(2rem, 5vw, 3rem); margin: 0.3rem 0 0; line-height: 1.1; }
+.page-title { font-family: var(--font-heading); font-weight: var(--title-weight, 700); font-size: clamp(2rem, 5vw, 3rem); margin: 0.3rem 0 0; line-height: 1.1; }
 .page-subtitle { margin: 0.5rem 0 0; color: var(--muted); font-style: italic; }
 .archive-year, .archive-tags, .recent { max-width: 48rem; margin-left: auto; margin-right: auto; }
-.archive-year h2 { font-family: var(--font-heading); font-size: 1.6rem; margin: 0 0 0.5rem; padding-bottom: 0.3rem; border-bottom: 1px solid var(--text); }
+.archive-year h2 { font-family: var(--font-heading); font-weight: var(--title-weight, 700); font-size: 1.6rem; margin: 0 0 0.5rem; padding-bottom: 0.3rem; border-bottom: 1px solid var(--text); }
 .archive-list time { font-family: var(--font-ui); font-size: 0.8rem; }
 .archive-list a { color: var(--text); text-decoration: none; }
 .archive-list a:hover { color: var(--accent-text); }
@@ -54,5 +54,5 @@
 .pagination { max-width: 48rem; margin-left: auto; margin-right: auto; font-family: var(--font-ui); font-size: 0.85rem; }
 
 .site-footer { padding-top: 2rem; padding-bottom: 3rem; text-align: center; border-top: 3px double var(--text); font-family: var(--font-ui); font-size: 0.8rem; }
-.footer-title { font-family: var(--font-heading); font-weight: 900; font-size: 1.6rem; }
+.footer-title { font-family: var(--font-heading); font-weight: var(--title-weight, 900); font-size: 1.6rem; }
 .site-footer p { margin: 0.5rem 0 0; }

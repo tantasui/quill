@@ -10,7 +10,7 @@ body { font-size: 1rem; }
 }
 .tag:hover { text-decoration: underline; }
 
-.post-title { font-size: 1.2rem; line-height: 1.35; margin: 0; font-weight: 650; letter-spacing: -0.01em; }
+.post-title { font-size: 1.2rem; line-height: 1.35; margin: 0; font-weight: var(--title-weight, 650); letter-spacing: -0.01em; }
 .post-title a { color: var(--text); text-decoration: none; }
 .post-title a:hover { color: var(--accent-text); }
 .post-excerpt { margin: 0.4rem 0 0; color: var(--muted); }
@@ -28,7 +28,7 @@ body { font-size: 1rem; }
 .article-kicker { margin: 0 0 0.75rem; font-family: var(--font-mono); font-size: 0.8rem; }
 .article-kicker a { text-decoration: none; }
 .article-kicker a::before { content: "#"; }
-.article-title { font-size: clamp(1.9rem, 5vw, 2.5rem); line-height: 1.15; margin: 0; letter-spacing: -0.025em; font-weight: 750; text-wrap: balance; }
+.article-title { font-size: clamp(1.9rem, 5vw, 2.5rem); line-height: 1.15; margin: 0; letter-spacing: -0.025em; font-weight: var(--title-weight, 750); text-wrap: balance; }
 .article-dek { font-size: 1.2rem; color: var(--muted); margin: 0.85rem 0 0; }
 .article-header { margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
 .article-header .post-meta { margin-top: 1rem; }
@@ -43,7 +43,7 @@ body { font-size: 1rem; }
 
 .page-header { margin-bottom: 2rem; }
 .page-kicker { margin: 0; font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent-text); }
-.page-title { font-size: 2rem; margin: 0.2rem 0 0; letter-spacing: -0.02em; }
+.page-title { font-weight: var(--title-weight, 700); font-size: 2rem; margin: 0.2rem 0 0; letter-spacing: -0.02em; }
 .page-subtitle { margin: 0.35rem 0 0; color: var(--muted); font-family: var(--font-mono); font-size: 0.85rem; }
 .archive-year h2 { font-family: var(--font-mono); font-size: 0.95rem; color: var(--muted); margin: 0 0 0.25rem; }
 .archive-list time { font-family: var(--font-mono); }

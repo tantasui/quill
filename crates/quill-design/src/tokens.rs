@@ -70,6 +70,23 @@ impl DesignTokens {
     pub fn to_css(&self) -> String {
         let mut out = String::from(":root {\n");
         self.light.write_css(&mut out, "  ");
+        self.write_shared(&mut out);
+        out.push_str("}\n\n@media (prefers-color-scheme: dark) {\n  :root {\n");
+        self.dark.write_css(&mut out, "    ");
+        out.push_str("  }\n}\n");
+        out
+    }
+
+    /// One palette forced on, whatever the reader's preference. For previews.
+    pub fn to_css_forced(&self, palette: &Palette) -> String {
+        let mut out = String::from(":root {\n");
+        palette.write_css(&mut out, "  ");
+        self.write_shared(&mut out);
+        out.push_str("}\n");
+        out
+    }
+
+    fn write_shared(&self, out: &mut String) {
         let values = [
             ("font-body", self.font_body.to_css()),
             ("font-heading", self.font_heading.to_css()),
@@ -80,12 +97,8 @@ impl DesignTokens {
             ("shadow", self.shadow.to_css()),
         ];
         for (name, value) in &values {
-            write_declaration(&mut out, "  ", name, value);
+            write_declaration(out, "  ", name, value);
         }
-        out.push_str("}\n\n@media (prefers-color-scheme: dark) {\n  :root {\n");
-        self.dark.write_css(&mut out, "    ");
-        out.push_str("  }\n}\n");
-        out
     }
 }
 

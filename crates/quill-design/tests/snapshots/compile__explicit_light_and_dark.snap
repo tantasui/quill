@@ -1,0 +1,47 @@
+---
+source: crates/quill-design/tests/compile.rs
+expression: render(& compile(source))
+---
+note[QD009] -: the file doesn't set surface, border, muted, so they were worked out from its other colors
+
+name: Some("Two Modes")
+fonts: []
+origins: border (dark):13 bg:7 bg (dark):7 text:8 text (dark):8 accent_text:9 accent_text (dark):9
+
+:root {
+  --bg: #fafafa;
+  --surface: #f3f3f3;
+  --text: #111111;
+  --muted: #6e6e6e;
+  --border: #d7d7d7;
+  --accent-fill: #0b57d0;
+  --on-accent: #fafafa;
+  --accent-text: #0b57d0;
+  --code-bg: #f3f3f3;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-heading: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --heading-weight: 700;
+  --radius: 6px;
+  --measure: 40rem;
+  --shadow: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #101010;
+    --surface: #161616;
+    --text: #f0f0f0;
+    --muted: #808080;
+    --border: #333333;
+    --accent-fill: #a8c7fa;
+    --on-accent: #101010;
+    --accent-text: #a8c7fa;
+    --code-bg: #141414;
+  }
+}
+
+:root {
+  --design-font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --image-radius: 6px;
+}

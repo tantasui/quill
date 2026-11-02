@@ -1,0 +1,8 @@
+---
+source: crates/quill-design/tests/compile.rs
+expression: render(& compile(source))
+---
+error[QD003] -: no colors were found in this file
+  help: Quill reads YAML front matter, a CSS :root block, color tables, and lists like `- text: #111111`.
+
+no design

@@ -1,0 +1,50 @@
+---
+source: crates/quill-design/tests/compile.rs
+expression: render(& compile(source))
+---
+note[QD031] -: this is a dark design with no light colors, so readers see it dark whatever their preference
+  help: Add light tokens to offer both.
+
+name: Some("Midnight")
+fonts: ["jetbrains-mono"]
+origins: bg:5 surface:6 text:7 muted:8 border:9 accent_fill:10
+
+@font-face { font-family: "JetBrains Mono"; src: url("/blog/static/fonts/jetbrains-mono-latin-wght-normal.woff2") format("woff2"); font-weight: 100 800; font-style: normal; font-display: swap; }
+
+:root {
+  --bg: #0b0d12;
+  --surface: #141821;
+  --text: #e6e9f0;
+  --muted: #9aa3b2;
+  --border: #2a303c;
+  --accent-fill: #7c9cff;
+  --on-accent: #0b0d12;
+  --accent-text: #7c9cff;
+  --code-bg: #141821;
+  --font-body: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-heading: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --heading-weight: 700;
+  --radius: 6px;
+  --measure: 40rem;
+  --shadow: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b0d12;
+    --surface: #141821;
+    --text: #e6e9f0;
+    --muted: #9aa3b2;
+    --border: #2a303c;
+    --accent-fill: #7c9cff;
+    --on-accent: #0b0d12;
+    --accent-text: #7c9cff;
+    --code-bg: #141821;
+  }
+}
+
+:root {
+  --design-font-ui: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --image-radius: 6px;
+}

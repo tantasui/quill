@@ -141,23 +141,22 @@ fn first_family(value: &str) -> String {
     unquote(value.split(',').next().unwrap_or(value))
 }
 
+/// Replaces comments with spaces of the same byte length, keeping newlines, so
+/// byte offsets into the result still match the original.
 fn blank_comments(css: &str) -> String {
-    let mut out = css.to_string();
-    let mut search = 0;
-    while let Some(start) = out[search..].find("/*").map(|i| search + i) {
-        let end = out[start + 2..]
-            .find("*/")
-            .map_or(out.len(), |i| start + 2 + i + 2);
-        let blank: String = out[start..end]
-            .chars()
-            .flat_map(|c| {
-                let filler = if c == '\n' { '\n' } else { ' ' };
-                std::iter::repeat_n(filler, c.len_utf8())
-            })
-            .collect();
-        out.replace_range(start..end, &blank);
-        search = end;
+    let mut out = String::with_capacity(css.len());
+    let mut rest = css;
+    while let Some(start) = rest.find("/*") {
+        out.push_str(&rest[..start]);
+        let comment = &rest[start..];
+        let end = comment[2..].find("*/").map_or(comment.len(), |i| i + 4);
+        for c in comment[..end].chars() {
+            let filler = if c == '\n' { '\n' } else { ' ' };
+            out.extend(std::iter::repeat_n(filler, c.len_utf8()));
+        }
+        rest = &comment[end..];
     }
+    out.push_str(rest);
     out
 }
 

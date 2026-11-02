@@ -66,6 +66,16 @@ impl Length {
     pub fn to_css(self) -> String {
         format!("{}{}", self.value, self.unit.as_str())
     }
+
+    /// The size in CSS pixels, taking 1rem as 16px. Sizes relative to their
+    /// context, `em` and `%`, have no fixed answer.
+    pub fn to_px(self) -> Option<f32> {
+        match self.unit {
+            Unit::Px => Some(self.value),
+            Unit::Rem => Some(self.value * 16.0),
+            Unit::Em | Unit::Percent => None,
+        }
+    }
 }
 
 impl TryFrom<String> for Length {
@@ -125,6 +135,14 @@ mod tests {
         ] {
             assert_eq!(Length::parse(input).unwrap().to_css(), expected, "{input}");
         }
+    }
+
+    #[test]
+    fn converts_fixed_sizes_to_pixels() {
+        assert_eq!(Length::parse("12px").unwrap().to_px(), Some(12.0));
+        assert_eq!(Length::parse("2rem").unwrap().to_px(), Some(32.0));
+        assert_eq!(Length::parse("2em").unwrap().to_px(), None);
+        assert_eq!(Length::parse("50%").unwrap().to_px(), None);
     }
 
     #[test]

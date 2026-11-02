@@ -1,0 +1,69 @@
+---
+source: crates/quill-design/tests/compile.rs
+expression: render(& compile(source))
+---
+warning[QD013] 11:25: accent #e4f222 is only 1.10:1 as text on #f4f2f0, so it's used as a fill only and links use the text color #0c0a08 with an underline
+  help: This is normal for a bright accent. Set a separate link color to style links.
+warning[QD005] 65:18: `--section-gap` has an invalid value `64-128px`, so it was ignored
+  help: invalid length `64-128px`: use a number with px, rem, em or %, such as 16px or 1.5rem
+note[QD007] 14:15: 2 tokens aren't used by Quill: Obsidian --color-obsidian Dark section b…, --color-highlighter
+  help: These are fine to leave in. Quill's templates just have no place for them.
+note[QD020] 26:5: `Lausanne` isn't bundled with Quill, so IBM Plex Sans is used instead, the substitute the file lists
+  help: Quill never loads fonts from other servers. If you have a license, install the font on your site separately.
+note[QD040] 31:1: applied the rule “A single weight (400) forces hierarchy through size and tracking rather than weight contra…”: heading weight is now 400
+note[QD020] 33:5: `Berkeley Mono` isn't bundled with Quill, so JetBrains Mono is used instead, the substitute the file lists
+  help: Quill never loads fonts from other servers. If you have a license, install the font on your site separately.
+note[QD040] 55:1: applied the rule “No box-shadow on anything. Borders do the elevation work.”: shadows are off
+note[QD040] 86:3: applied the rule “Never bold.”: heading weight is now 400
+note[QD041] 87:3: this rule wasn't applied: “Use photography of real people, never illustrations.”
+note[QD041] 88:3: this rule wasn't applied: “Keep sentences short.”
+note[QD030] -: dark palette derived from the light one: bg #0e0d0c, surface #171615, text #d3d0ce, muted #81807f, border #2a2927, accent fill #e4f14d, accent text #e4f14d
+  help: Add dark tokens to the file to set these yourself.
+
+name: Some("Northwind Exchange")
+fonts: ["ibm-plex-sans", "jetbrains-mono"]
+origins: text:61 bg:62 accent_fill:11 muted:13 surface:21 border:22 radius:64 page_width:66
+
+@font-face { font-family: "IBM Plex Sans"; src: url("/blog/static/fonts/ibm-plex-sans-latin-wght-normal.woff2") format("woff2"); font-weight: 100 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url("/blog/static/fonts/jetbrains-mono-latin-wght-normal.woff2") format("woff2"); font-weight: 100 800; font-style: normal; font-display: swap; }
+
+:root {
+  --bg: #f4f2f0;
+  --surface: #ffffff;
+  --text: #0c0a08;
+  --muted: #6d6c6b;
+  --border: #e5e7eb;
+  --accent-fill: #e4f222;
+  --on-accent: #0c0a08;
+  --accent-text: #0c0a08;
+  --code-bg: #ffffff;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-heading: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --heading-weight: 400;
+  --radius: 16px;
+  --measure: 40rem;
+  --shadow: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e0d0c;
+    --surface: #171615;
+    --text: #d3d0ce;
+    --muted: #81807f;
+    --border: #2a2927;
+    --accent-fill: #e4f14d;
+    --on-accent: #0e0d0c;
+    --accent-text: #e4f14d;
+    --code-bg: #151412;
+  }
+}
+
+:root {
+  --design-font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --image-radius: 16px;
+  --title-weight: 400;
+}
+
+body.width-regular, body.width-wide { --page-width: 1200px; }

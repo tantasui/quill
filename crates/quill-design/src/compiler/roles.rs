@@ -142,6 +142,7 @@ const RULES: &[(&[&str], Role)] = &[
             "bg",
             "backdrop",
             "page",
+            "pages",
             "paper",
         ],
         Role::Bg,

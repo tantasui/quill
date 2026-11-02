@@ -1,0 +1,64 @@
+---
+source: crates/quill-design/tests/compile.rs
+expression: render(& compile(source))
+---
+note[QD008] 7:14: `secondary` (#5c6b67) is used as muted because it's a mid-tone neutral
+  help: Describe what the color is for in the file to control this.
+note[QD008] 9:12: `neutral` (#f6f4ef) is used as bg because it's the outermost neutral
+  help: Describe what the color is for in the file to control this.
+note[QD007] 11:10: 10 tokens aren't used by Quill: error, typography.h1.fontSize, typography.h1.lineHeight, typography.body-md.fontSize, typography.label-caps.fontSize, spacing.sm and 4 more
+  help: These are fine to leave in. Quill's templates just have no place for them.
+note[QD041] 52:3: this rule wasn't applied: “Do keep one accent per screen.”
+note[QD041] 53:3: this rule wasn't applied: “Don't use more than two typefaces.”
+note[QD040] 54:3: applied the rule “No box-shadow anywhere; hairlines do the work.”: shadows are off
+note[QD009] -: the file doesn't set border, so it was worked out from its other colors
+note[QD030] -: dark palette derived from the light one: bg #0e0d0b, surface #171614, text #bfd7d1, muted #778380, border #2a2926, accent fill #23756d, accent text #38877e
+  help: Add dark tokens to the file to set these yourself.
+
+name: Some("Harbor Light")
+fonts: ["inter", "source-serif-4"]
+origins: text:6 accent_fill:8 surface:10 bg:9 muted:7 heading_weight:16 radius:28
+
+@font-face { font-family: "Inter"; src: url("/blog/static/fonts/inter-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("/blog/static/fonts/inter-latin-wght-italic.woff2") format("woff2"); font-weight: 100 900; font-style: italic; font-display: swap; }
+@font-face { font-family: "Source Serif 4"; src: url("/blog/static/fonts/source-serif-4-latin-wght-normal.woff2") format("woff2"); font-weight: 200 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Source Serif 4"; src: url("/blog/static/fonts/source-serif-4-latin-wght-italic.woff2") format("woff2"); font-weight: 200 900; font-style: italic; font-display: swap; }
+
+:root {
+  --bg: #f6f4ef;
+  --surface: #ffffff;
+  --text: #16302b;
+  --muted: #5c6b67;
+  --border: #d4d7d2;
+  --accent-fill: #0f766e;
+  --on-accent: #f6f4ef;
+  --accent-text: #0f766e;
+  --code-bg: #ffffff;
+  --font-body: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-heading: "Source Serif 4", Georgia, "Times New Roman", Times, serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --heading-weight: 600;
+  --radius: 8px;
+  --measure: 40rem;
+  --shadow: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e0d0b;
+    --surface: #171614;
+    --text: #bfd7d1;
+    --muted: #778380;
+    --border: #2a2926;
+    --accent-fill: #23756d;
+    --on-accent: #f5f5f5;
+    --accent-text: #38877e;
+    --code-bg: #151411;
+  }
+}
+
+:root {
+  --design-font-ui: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --image-radius: 8px;
+  --title-weight: 600;
+}

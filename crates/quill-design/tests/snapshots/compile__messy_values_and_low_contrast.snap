@@ -1,0 +1,29 @@
+---
+source: crates/quill-design/tests/compile.rs
+expression: render(& compile(source))
+---
+error[QD010] 4:9: text #cccccc on background #ffffff has a contrast of 1.61:1, below the 4.5:1 needed to read comfortably
+  help: Make the text darker or the background lighter (or the reverse for a dark design).
+warning[QD005] 6:11: `accent` has an invalid value `notacolor`, so it was ignored
+  help: invalid color `notacolor`: use a CSS color name, or a hex, rgb(), hsl() or oklch() value
+warning[QD005] 7:9: `link` has an invalid value `{colors.missing}`, so it was ignored
+  help: it refers to a token this file doesn't define
+warning[QD005] 8:11: `loop-a` has an invalid value `{colors.loop-b}`, so it was ignored
+  help: its references go in a circle
+warning[QD005] 9:11: `loop-b` has an invalid value `{colors.loop-a}`, so it was ignored
+  help: its references go in a circle
+warning[QD005] 11:7: `md` has an invalid value `big`, so it was ignored
+  help: invalid length `big`: use a number with px, rem, em or %, such as 16px or 1.5rem
+warning[QD005] 13:12: `spacing.section` has an invalid value `64-128px`, so it was ignored
+  help: invalid length `64-128px`: use a number with px, rem, em or %, such as 16px or 1.5rem
+warning[QD005] 27:13: `--radius` has an invalid value `12`, so it was ignored
+  help: invalid length `12`: use a number with px, rem, em or %, such as 16px or 1.5rem
+warning[QD005] 28:18: `--shadow-card` has an invalid value `soft`, so it was ignored
+  help: invalid shadow `soft`: use `none`, or offsets, optional blur and spread, and a color, such as 0 1px 2px #00000020
+warning[QD005] 30:10: `--gap` has an invalid value `10px 20px`, so it was ignored
+  help: invalid length `10px 20px`: use a number with px, rem, em or %, such as 16px or 1.5rem
+note[QD006] 23:10: `Text` sets text to #000000, but line 4 already set it to #cccccc, which wins
+note[QD020] 29:16: `x` isn't bundled with Quill, so Inter is used instead, the closest match
+  help: Quill never loads fonts from other servers. If you have a license, install the font on your site separately.
+
+no design

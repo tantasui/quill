@@ -27,7 +27,7 @@ impl fmt::Display for Level {
 macro_rules! codes {
     ($($variant:ident = $code:literal $level:ident,)*) => {
         /// A stable identifier for each kind of diagnostic. Published in
-        /// `docs/design-diagnostics.md`; never reuse or renumber one.
+        /// `docs/design-import.md`; never reuse or renumber one.
         #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
         pub enum Code {
             $(#[serde(rename = $code)] $variant,)*

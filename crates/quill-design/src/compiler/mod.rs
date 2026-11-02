@@ -13,6 +13,7 @@ mod markdown;
 mod normalize;
 mod palette;
 mod prose;
+pub mod report;
 mod roles;
 mod yaml;
 

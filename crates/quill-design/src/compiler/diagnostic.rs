@@ -192,6 +192,11 @@ fn printable_char(c: char) -> char {
     }
 }
 
+/// Text from a file, such as a value quoted in a message, made safe to print.
+pub(crate) fn printable(text: &str) -> String {
+    text.chars().map(printable_char).collect()
+}
+
 /// Converts byte offsets into lines and columns. Everything is looked up rather
 /// than scanned, so thousands of tokens on one enormous line stay fast.
 pub(crate) struct LineIndex<'a> {

@@ -4,6 +4,7 @@
 
 use std::fmt::Write;
 
+use quill_design::compiler::report;
 use quill_design::{compile, compile_bytes, Code, Compilation, Level, Palette, MAX_SOURCE_BYTES};
 
 fn render(result: &Compilation) -> String {
@@ -291,4 +292,13 @@ fn local_fixtures() {
             render(&compile_bytes(&bytes))
         );
     }
+}
+
+#[test]
+fn renders_a_whole_report_for_the_terminal() {
+    let source = include_str!("fixtures/messy.md");
+    let result = compile(source);
+    let mut out = report::render(&result.diagnostics, source, "messy.md", false);
+    out.push_str(&report::summary(&result.diagnostics, false));
+    insta::assert_snapshot!(out);
 }
